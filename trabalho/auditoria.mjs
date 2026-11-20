@@ -1,127 +1,172 @@
-/**
- * Auditoria lógica e matemática do Cofre Matemático.
- * Extrai o núcleo procedural diretamente do index.html (entre os marcadores)
- * para garantir que testa exatamente o código que roda no navegador.
- */
+// Auditoria matemática: extrai o núcleo procedural do index.html e gera
+// 500 pedidos de cada tipo (4) em cada nível (3) = 6.000 pedidos.
 import fs from 'node:fs';
-import vm from 'node:vm';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const INDEX = path.join(ROOT, 'index.html');
-const OUT = path.join(ROOT, 'trabalho', 'auditoria.json');
+const HTML = fs.readFileSync(path.resolve('index.html'), 'utf8');
+const m = HTML.match(/\/\/ ==GEN_START==[^\n]*\n([\s\S]*?)\n\/\/ ==GEN_END==/);
+if (!m) throw new Error('Marcadores ==GEN_START== / ==GEN_END== não encontrados');
+const factory = new Function(m[1] + '\nreturn {generateChallenge, validateChallenge, makeRng, ratioKey, CAPS};');
+const { generateChallenge, validateChallenge, ratioKey, CAPS } = factory();
 
-const src = fs.readFileSync(INDEX, 'utf8');
-const m = src.match(/\/\* ==GEN_START== \*\/([\s\S]*?)\/\* ==GEN_END== \*\//);
-if (!m) throw new Error('Marcadores do gerador não encontrados no index.html');
+const NIVEIS = ['aprendiz', 'sous', 'chef'];
+const TIPOS = ['escala', 'faltante', 'comparacao', 'conversao'];
+const POR_TIPO = 500;
+const erros = [];
+const stats = { total: 0, porNivel: {}, porTipo: {}, inteiras: 0, comparacoes: 0, metade: 0, reprodutibilidade: 0 };
+const detalhes = [];
 
-const sandbox = { console, Math, Number, Object, String, Error };
-vm.createContext(sandbox);
-vm.runInContext(m[1] + '\n;globalThis.__GEN = CofreGen;', sandbox, { timeout: 10000 });
-const G = sandbox.__GEN;
-
-const LEVELS = ['iniciante', 'intermediario', 'avancado'];
-const TYPES = ['operacao', 'termo', 'sequencia', 'selecao'];
-const PER = 500;
-
-const report = {
-  data: new Date().toISOString(),
-  arquivo: 'index.html',
-  totalEsperado: LEVELS.length * TYPES.length * PER,
-  totalTestado: 0,
-  porNivel: {},
-  porTipo: {},
-  porNivelTipo: {},
-  verificacoes: {
-    respostaInteiraExata: 0,
-    unicidade: 0,
-    limitesRespeitados: 0,
-    reprodutibilidade: 0,
-    selecaoUnica: 0
-  },
-  falhas: [],
-  amostras: {}
-};
-
-function check(cond, msg, ctx) {
-  if (!cond) report.falhas.push({ ...ctx, mensagem: msg });
+function falha(id, msg) {
+  erros.push(`${id}: ${msg}`);
+  if (detalhes.length < 30) detalhes.push({ id, msg });
 }
 
-for (const level of LEVELS) {
-  report.porNivel[level] = 0;
-  for (const type of TYPES) {
-    const key = level + '/' + type;
-    report.porNivelTipo[key] = { gerados: 0, tiposQuestao: {} };
-    for (let i = 0; i < PER; i++) {
-      const seed = `auditoria|${level}|${type}|${i}`;
-      const rng = G.rngFrom(seed);
-      let mod;
+for (const nivel of NIVEIS) {
+  stats.porNivel[nivel] = 0;
+  for (const tipo of TIPOS) {
+    stats.porTipo[`${nivel}/${tipo}`] = 0;
+    for (let i = 0; i < POR_TIPO; i++) {
+      const seed = 100000 + (i * 7919) % 900000;
+      const id = `${nivel}/${tipo}/${i}`;
+      let c;
       try {
-        mod = G.generate(type, level, rng);
+        c = generateChallenge(seed, nivel, tipo, i);
       } catch (e) {
-        check(false, 'exceção na geração: ' + e.message, { level, type, seed });
+        falha(id, 'exceção ao gerar: ' + e.message);
         continue;
       }
-      if (!report.amostras[key]) report.amostras[key] = JSON.parse(JSON.stringify(mod));
+      stats.total++;
 
-      report.totalTestado++;
-      report.porNivel[level]++;
-      report.porTipo[type] = (report.porTipo[type] || 0) + 1;
-      report.porNivelTipo[key].gerados++;
+      // 1. Validação estrutural e de limites do próprio núcleo
+      for (const e of validateChallenge(c)) falha(id, e);
 
-      // 1. resposta inteira exata (módulos numéricos)
-      if (type === 'operacao' || type === 'termo' || type === 'sequencia') {
-        check(Number.isInteger(mod.answer) && mod.answer >= 0, 'resposta não inteira/não negativa', { level, type, seed });
-        report.verificacoes.respostaInteiraExata++;
+      // 2. Reprodutibilidade da semente
+      const c2 = generateChallenge(seed, nivel, tipo, i);
+      if (JSON.stringify(c2) !== JSON.stringify(c)) {
+        falha(id, 'semente não reproduziu o mesmo pedido');
+      } else {
+        stats.reprodutibilidade++;
       }
 
-      // 2. unicidade
-      if (type === 'selecao') {
-        const c = G.countSatisfying(mod);
-        check(c === 1, `seleção com ${c} opções satisfazentes`, { level, type, seed });
-        check(mod.answerIndex >= 0 && G.isSatisfying(mod, mod.answerIndex), 'answerIndex não satisfaz', { level, type, seed });
-        report.verificacoes.selecaoUnica++;
-        report.verificacoes.unicidade++;
-        if (mod.ruleKey) report.porNivelTipo[key].tiposQuestao[mod.ruleKey] = (report.porNivelTipo[key].tiposQuestao[mod.ruleKey] || 0) + 1;
-      } else if (type === 'sequencia') {
-        const p = G.uniquePredictions(mod.terms);
-        check(p.length === 1, `sequência ambígua: previsões [${p}]`, { level, type, seed, terms: mod.terms });
-        check(p.length === 1 && p[0] === mod.answer, `sequência divergente: ${p} vs ${mod.answer}`, { level, type, seed });
-        report.verificacoes.unicidade++;
-        if (mod.ruleKey) report.porNivelTipo[key].tiposQuestao[mod.ruleKey] = (report.porNivelTipo[key].tiposQuestao[mod.ruleKey] || 0) + 1;
+      // 3. Textos e unidades sem valores proibidos
+      const textos = [c.titulo, c.baseTxt, c.pedidoTxt, c.dica].join(' ');
+      if (/NaN|undefined|Infinity|\b0 copos\b|\b0 g\b|\b0 mL\b/.test(textos)) {
+        falha(id, 'texto com valor inválido: ' + textos);
+      }
+      if (/[1-9]\d*\s*(kg|g|L|mL)\s+de\s+\S+\s+para\s+0/.test(c.pedidoTxt)) {
+        falha(id, 'porção zero no pedido');
+      }
+
+      // 4. Solução exata, positiva e única
+      if (tipo === 'comparacao') {
+        stats.comparacoes++;
+        const chave = ratioKey(c.ing.map(x => x.base));
+        const certas = c.opcoes.filter(o => {
+          if (o.length !== c.ing.length) falha(id, 'opção com nº de ingredientes diferente');
+          return ratioKey(o) === chave;
+        });
+        if (certas.length !== 1) falha(id, `${certas.length} opções satisfazem a proporção (esperado 1)`);
+        if (c.opcoes[c.correta] !== certas[0]) falha(id, 'índice correto não aponta para a única opção válida');
+        for (const o of c.opcoes) {
+          o.forEach(v => {
+            if (!Number.isInteger(v) || v <= 0) falha(id, 'valor de jarro não inteiro positivo: ' + v);
+            if (v > CAPS[nivel].geral * 2) falha(id, 'valor de jarro acima do limite: ' + v);
+          });
+        }
+      } else if (tipo === 'escala') {
+        if (!Array.isArray(c.solucoes) || c.solucoes.length !== c.ing.length) {
+          falha(id, 'solucoes não casa com ing');
+        } else {
+          c.solucoes.forEach((v, i) => {
+            if (!Number.isInteger(v) || v <= 0) falha(id, `solução ${i} inválida: ${v}`);
+            if (v > CAPS[nivel].geral) falha(id, `solução ${i} acima do limite: ${v}`);
+            if (c.ing[i].meta !== v) falha(id, `meta ${i} ≠ solução ${i}`);
+          });
+          stats.inteiras++;
+          // Unicidade: o fator é deduzido de qualquer ingrediente e deve
+          // produzir o mesmo valor para todos os demais.
+          for (let a = 0; a < c.ing.length; a++) {
+            for (let b = 0; b < c.ing.length; b++) {
+              if (a === b) continue;
+              const lhs = c.solucoes[a] * c.ing[b].base;
+              const rhs = c.solucoes[b] * c.ing[a].base;
+              if (lhs !== rhs) falha(id, `razão inconsistente entre ${a} e ${b}`);
+            }
+          }
+        }
+        if (/½/.test(c.pedidoTxt)) stats.metade++;
       } else {
-        report.verificacoes.unicidade++;
-        if (type === 'operacao' && mod.display) {
-          const op = mod.display.includes('(') ? 'composta' : (mod.display.match(/[+\u2212\u00d7\u00f7]/) || ['?'])[0];
-          report.porNivelTipo[key].tiposQuestao[op] = (report.porNivelTipo[key].tiposQuestao[op] || 0) + 1;
+        stats.inteiras++;
+        if (!Number.isInteger(c.answer) || c.answer <= 0) falha(id, 'resposta inválida: ' + c.answer);
+        if (c.solucoes.length !== 1 || c.solucoes[0] !== c.answer) falha(id, 'solução duplicada/inconsistente');
+        if (!Number.isFinite(c.answer)) falha(id, 'resposta não finita');
+        if (tipo === 'conversao') {
+          const cap = CAPS[nivel].conv;
+          if (c.answer > cap) falha(id, 'conversão acima do limite: ' + c.answer);
+          const f = c.conversao.factor;
+          const dePequena = (c.conversao.from === 'g' || c.conversao.from === 'mL');
+          if (dePequena) {
+            if (c.answer * f !== c.fromVal) falha(id, 'conversão inversa não exata');
+          } else if (c.answer !== c.fromVal) {
+            // kg / L / xícara: fromVal e answer já estão na unidade pequena
+            falha(id, 'conversão direta não exata');
+          }
+          if (!c.conversao.eq) falha(id, 'equivalência não exibida na comanda');
+          if (c.escalaInfo && !Number.isInteger(c.escalaInfo.base * c.escalaInfo.k)) {
+            falha(id, 'escala+conversão com fator quebrado');
+          }
+        } else {
+          if (c.answer > CAPS[nivel].geral) falha(id, 'termo faltante acima do limite');
+          // O termo falta nte deve manter a razão com todos os dados
+          c.ing.forEach((ig, i) => {
+            if (i === c.faltante) return;
+            if (ig.meta * c.ing[c.faltante].base !== c.answer * ig.base) {
+              falha(id, `proporção do termo faltante quebrada em ${i}`);
+            }
+          });
         }
       }
 
-      // 3. limites do nível + validação completa do próprio gerador
-      const problems = G.validate(mod, level);
-      check(problems.length === 0, 'validação: ' + problems.join(' | '), { level, type, seed });
-      report.verificacoes.limitesRespeitados++;
+      // 5. Nenhuma quantidade obrigatória zerada/negativa
+      c.ing.forEach((ig, i) => {
+        if (!(ig.base > 0)) falha(id, `ingrediente ${i} com base ≤ 0`);
+        if (tipo !== 'conversao' && !Number.isInteger(ig.base)) falha(id, `base não inteira: ${ig.base}`);
+        if (ig.meta !== undefined && !(ig.meta > 0)) falha(id, `ingrediente ${i} com meta ≤ 0`);
+        if (ig.atual !== undefined && !Number.isInteger(ig.atual)) falha(id, `ingrediente ${i} com atual não inteiro`);
+      });
 
-      // 4. reprodutibilidade da semente
-      const again = G.generate(type, level, G.rngFrom(seed));
-      check(JSON.stringify(again) === JSON.stringify(mod), 'geração não reprodutível', { level, type, seed });
-      report.verificacoes.reprodutibilidade++;
+      stats.porNivel[nivel]++;
+      stats.porTipo[`${nivel}/${tipo}`]++;
     }
   }
 }
 
-const ok = report.falhas.length === 0 && report.totalTestado === report.totalEsperado;
-report.resultado = ok ? 'APROVADO' : 'REPROVADO';
-fs.writeFileSync(OUT, JSON.stringify(report, null, 2), 'utf8');
+const relatorio = {
+  data: new Date().toISOString(),
+  arquivo: 'index.html',
+  tamanhoBytes: fs.statSync('index.html').size,
+  totalPedidos: stats.total,
+  esperado: NIVEIS.length * TIPOS.length * POR_TIPO,
+  porNivel: stats.porNivel,
+  porTipo: stats.porTipo,
+  verificacoes: {
+    solucoesInteirasExatasPositivas: stats.inteiras,
+    comparacoesUnicaAlternativa: stats.comparacoes,
+    reprodutibilidadeSemente: stats.reprodutibilidade,
+    escalasComMetadeExplicita: stats.metade,
+    limitesPorNivel: stats.total
+  },
+  falhas: erros.length,
+  detalhesFalhas: detalhes,
+  resultado: erros.length === 0 && stats.total === 6000 ? 'APROVADO' : 'REPROVADO'
+};
 
-console.log(`Total testado: ${report.totalTestado}/${report.totalEsperado}`);
-console.log(`Falhas: ${report.falhas.length}`);
-for (const [k, v] of Object.entries(report.verificacoes)) console.log(`  ${k}: ${v}`);
-if (!ok) {
-  console.log('Primeiras falhas:');
-  report.falhas.slice(0, 25).forEach(f => console.log(' -', JSON.stringify(f)));
+fs.writeFileSync(path.resolve('trabalho/auditoria.json'), JSON.stringify(relatorio, null, 2));
+console.log(`Pedidos: ${stats.total}/6000`);
+console.log(`Inteiras: ${stats.inteiras} · Comparações: ${stats.comparacoes} · Reprodutíveis: ${stats.reprodutibilidade}`);
+console.log(`Escalas ½: ${stats.metade} · Falhas: ${erros.length}`);
+if (erros.length) {
+  console.log(erros.slice(0, 20).join('\n'));
+  process.exit(1);
 }
-console.log('Resultado:', report.resultado);
-console.log('Relatório:', OUT);
-process.exit(ok ? 0 : 1);
+console.log('RESULTADO: APROVADO');

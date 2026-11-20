@@ -2,1206 +2,1364 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cofre Matemático — Terminal de Desarme</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cozinha de Proporções</title>
 <style>
-  :root{
-    --bg:#060a0e; --bg2:#0a1219; --panel:#0c161e; --panel2:#101e28;
-    --line:#1b3543; --line2:#274b5c;
-    --cyan:#3fe0ff; --cyan-d:#1c7e96; --amber:#ffb43a; --green:#48f0a4;
-    --red:#ff4f60; --pink:#ff6ba8; --txt:#dcecf4; --dim:#9ebac7;
-    --mono:Consolas,"Cascadia Mono","Lucida Console","Courier New",monospace;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;min-height:100%;background:var(--bg);color:var(--txt);font-family:var(--mono)}
-  body{
-    background:
-      radial-gradient(1100px 620px at 50% -12%,rgba(63,224,255,.10),transparent 62%),
-      radial-gradient(800px 500px at 90% 110%,rgba(255,180,58,.06),transparent 60%),
-      linear-gradient(180deg,#070c11 0%,#05090d 60%,#04070a 100%);
-    overflow-x:hidden;
-  }
-  body::before{
-    content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
-    background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 4px);
-    mix-blend-mode:overlay;
-  }
-  body::after{
-    content:"";position:fixed;inset:0;pointer-events:none;z-index:49;
-    background:radial-gradient(ellipse at center,transparent 52%,rgba(0,0,0,.55) 100%);
-  }
-  #app{max-width:1440px;margin:0 auto;padding:14px 20px 10px;position:relative;z-index:2}
+:root{
+  --cream:#fff6e6; --paper:#fffaf0; --ink:#3c2416; --ink-soft:#7a5a42;
+  --wood:#9a5630; --wood-d:#66331b; --wood-l:#c17a49;
+  --terra:#c65b39; --terra-d:#9d4326; --gold:#f2b440; --gold-d:#c78a1e;
+  --mint:#5da97c; --mint-d:#3c8059; --red:#d34f45; --blue:#4f8fb8;
+  --line:#e3c9a6; --shadow:0 10px 26px rgba(60,25,10,.22);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{
+  font-family:"Trebuchet MS","Segoe UI",Tahoma,sans-serif;
+  color:var(--ink);background:#2f1b12;
+  -webkit-font-smoothing:antialiased;user-select:none;
+}
+button,input{font-family:inherit}
+button{cursor:pointer}
+#app{position:fixed;inset:0;overflow:hidden}
+.tela{position:absolute;inset:0;display:none;flex-direction:column}
+.tela.ativa{display:flex}
 
-  /* ---------- TOPO ---------- */
-  .topbar{
-    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;
-    background:linear-gradient(180deg,rgba(16,30,40,.95),rgba(9,17,23,.95));
-    border:1px solid var(--line);border-radius:12px;padding:10px 18px;
-    box-shadow:0 8px 26px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
-    min-height:88px;
-  }
-  .brand{display:flex;align-items:center;gap:13px;min-width:0}
-  .brand-mark{
-    width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;
-    border:1px solid var(--cyan-d);border-radius:9px;color:var(--cyan);font-size:26px;
-    background:radial-gradient(circle at 50% 35%,rgba(63,224,255,.18),rgba(63,224,255,.03));
-    box-shadow:0 0 18px rgba(63,224,255,.18),inset 0 0 12px rgba(63,224,255,.10);
-  }
-  .brand-title{font-size:19px;font-weight:700;letter-spacing:3.5px;color:#eaf9ff;text-shadow:0 0 14px rgba(63,224,255,.35);white-space:nowrap}
-  .brand-sub{font-size:9.5px;letter-spacing:2.2px;color:var(--dim);margin-top:3px;white-space:nowrap}
-  .timer-wrap{text-align:center;min-width:250px}
-  .timer-label,.status-label,.console-label,.panel-head,.vault-head,.footer{
-    font-size:9.5px;letter-spacing:2.4px;color:var(--dim);text-transform:uppercase;
-  }
-  .timer{
-    font-size:44px;line-height:1.02;font-weight:700;letter-spacing:2px;
-    color:var(--amber);text-shadow:0 0 8px rgba(255,180,58,.55),0 0 26px rgba(255,180,58,.25);
-    font-variant-numeric:tabular-nums;transition:color .2s,text-shadow .2s;
-  }
-  .timer.critical{color:var(--red);text-shadow:0 0 10px rgba(255,79,96,.8),0 0 32px rgba(255,79,96,.45);animation:pulse .55s ease-in-out infinite}
-  .mode-tag{margin-top:2px;font-size:9px;letter-spacing:2.6px;color:var(--cyan-d)}
-  .alert-badge{display:none;margin-top:7px;font-size:9px;letter-spacing:2px;color:#fff;background:#a31226;border:1px solid var(--red);border-radius:4px;padding:1px 8px;box-shadow:0 0 14px rgba(255,79,96,.5);animation:pulse .5s ease-in-out infinite}
-  .alert-badge.on{display:inline-block}
-  @keyframes pulse{50%{opacity:.55;transform:scale(1.02)}}
-  .status-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-  .status-row{display:flex;align-items:center;gap:10px}
-  .leds{display:flex;gap:7px}
-  .led{width:14px;height:14px;border-radius:50%;border:1px solid #b4663a;background:#241a12;box-shadow:inset 0 0 5px #000,0 0 6px rgba(255,180,58,.22);transition:.15s}
-  .led.on{background:var(--red);border-color:#ff8a95;box-shadow:0 0 12px var(--red),0 0 26px rgba(255,79,96,.6)}
-  .fail-count{font-size:11px;letter-spacing:1px;color:var(--amber);min-width:27px;text-align:left}
-  .fail-count.danger{color:var(--red);text-shadow:0 0 10px rgba(255,79,96,.6)}
-  .score{font-size:17px;color:var(--green);letter-spacing:2px;text-shadow:0 0 10px rgba(72,240,164,.4);min-width:70px;text-align:right}
-  .icon-btn{
-    background:rgba(10,22,30,.9);border:1px solid var(--line2);color:var(--cyan);
-    font-family:var(--mono);font-size:10px;letter-spacing:1.6px;padding:5px 12px;border-radius:6px;cursor:pointer;
-    transition:.15s;
-  }
-  .icon-btn:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(63,224,255,.25)}
+/* ---------- fundo de cozinha ---------- */
+.fundo-cozinha{
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% -10%,rgba(255,214,150,.30),transparent 60%),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.045) 0 1px,transparent 1px 46px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.045) 0 1px,transparent 1px 92px),
+    linear-gradient(180deg,#b9724a 0%,#8e4e2e 48%,#6b381f 100%);
+}
+.fundo-cozinha:after{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 60%,transparent 40%,rgba(48,20,8,.55) 100%);
+}
 
-  /* ---------- MAIN ---------- */
-  .main{display:grid;grid-template-columns:minmax(0,1fr) 268px;gap:14px;margin-top:14px}
-  .panel-wrap,.vault{
-    background:
-      radial-gradient(circle at 10px 10px,#517b8c 0 2px,#122630 2.5px 4px,transparent 4.5px),
-      radial-gradient(circle at calc(100% - 10px) 10px,#517b8c 0 2px,#122630 2.5px 4px,transparent 4.5px),
-      radial-gradient(circle at 10px calc(100% - 10px),#517b8c 0 2px,#122630 2.5px 4px,transparent 4.5px),
-      radial-gradient(circle at calc(100% - 10px) calc(100% - 10px),#517b8c 0 2px,#122630 2.5px 4px,transparent 4.5px),
-      repeating-linear-gradient(135deg,rgba(255,255,255,.012) 0 1px,transparent 1px 6px),
-      linear-gradient(180deg,rgba(13,24,32,.96),rgba(8,15,20,.96));
-    border:1px solid var(--line);border-radius:12px;padding:12px;
-    box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.035);
-  }
-  .panel-head,.vault-head{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 10px;border-bottom:1px dashed var(--line);margin-bottom:11px}
-  .panel-head span:last-child{color:var(--cyan);letter-spacing:1.6px}
-  .modules{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:11px;align-content:start}
-  .mod{grid-column:span 2;min-width:0}
-  .modules.cols-2 .mod{grid-column:span 3}
-  .modules.cols-5 .mod.wide{grid-column:span 3}
-  .mod{
-    position:relative;background:linear-gradient(160deg,#101e28 0%,#0b151c 70%);
-    border:1px solid var(--line);border-radius:9px;padding:9px 11px 10px;
-    min-height:216px;display:flex;flex-direction:column;gap:7px;cursor:pointer;
-    transition:border-color .18s,box-shadow .18s,transform .18s,opacity .18s,background .18s;
-    overflow:hidden;
-  }
-  .mod::before{
-    content:"";position:absolute;left:0;right:0;top:0;height:2px;
-    background:linear-gradient(90deg,transparent,var(--cyan-d),transparent);opacity:.5;
-  }
-  .mod:hover{border-color:#38607a}
-  .mod.active{border-color:var(--cyan);background:linear-gradient(160deg,#123744 0%,#0b1c26 78%);
-    box-shadow:0 0 0 1px rgba(63,224,255,.45),0 0 34px rgba(63,224,255,.22),inset 0 0 30px rgba(63,224,255,.10);
-    transform:translateY(-2px)}
-  .mod.active::before{background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:1;box-shadow:0 0 14px var(--cyan)}
-  .mod.solved{border-color:#245c46;background:linear-gradient(160deg,#0e241e,#0a1714);opacity:.82}
-  .mod.solved::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
-  .mod.shake{animation:shake .34s ease-in-out;border-color:var(--red);box-shadow:0 0 22px rgba(255,79,96,.35)}
-  @keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-  .mod-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
-  .mod-id{font-size:10px;letter-spacing:1.8px;color:var(--dim)}
-  .mod-badge{font-size:8.5px;letter-spacing:1.5px;color:var(--cyan);border:1px solid var(--cyan-d);border-radius:4px;padding:2px 5px;white-space:nowrap}
-  .mod.solved .mod-badge{color:var(--green);border-color:#2c6b50}
-  .mod-state{font-size:8.5px;letter-spacing:1.4px;padding:2px 5px;border-radius:4px;border:1px solid #714d20;color:var(--amber);white-space:nowrap}
-  .mod.active .mod-state{color:#071418;background:var(--cyan);border-color:var(--cyan);font-weight:bold}
-  .mod.solved .mod-state{color:#06150f;background:var(--green);border-color:var(--green);font-weight:bold}
-  .mod-prompt{font-size:9.5px;letter-spacing:1.4px;color:#b6d0dc;text-transform:uppercase}
-  .leddisplay{
-    background:#04090d;border:1px solid #16303c;border-radius:6px;min-height:52px;
-    display:flex;align-items:center;justify-content:center;text-align:center;
-    padding:5px 7px;box-shadow:inset 0 3px 12px rgba(0,0,0,.85),inset 0 0 0 1px rgba(63,224,255,.04);
-  }
-  .ledvalue{font-size:21px;letter-spacing:1.6px;color:var(--amber);text-shadow:0 0 9px rgba(255,180,58,.6);font-weight:700;line-height:1.25;word-break:break-word}
-  .mod.termo .ledvalue{color:#ffd479}
-  .mod.sequencia .ledvalue{color:var(--cyan);text-shadow:0 0 9px rgba(63,224,255,.55);font-size:13px;letter-spacing:.4px;white-space:nowrap}
-  .mod.selecao .ledvalue{font-size:11px;letter-spacing:1px;color:var(--pink);text-shadow:0 0 9px rgba(255,107,168,.45);text-transform:uppercase}
-  .rule-chip{align-self:flex-start;font-size:9.5px;letter-spacing:.9px;color:#b8d2de;border-left:2px solid var(--line2);padding-left:6px}
-  .entry{
-    margin-top:auto;background:#04090d;border:1px dashed #224556;border-radius:5px;
-    min-height:34px;display:flex;align-items:center;justify-content:center;gap:2px;
-    font-size:20px;letter-spacing:4px;color:var(--green);text-shadow:0 0 10px rgba(72,240,164,.5);
-    font-variant-numeric:tabular-nums;
-  }
-  .caret{width:8px;height:19px;background:var(--green);opacity:.85;animation:blink .9s steps(1) infinite;box-shadow:0 0 8px var(--green)}
-  .mod:not(.active) .caret{display:none}
-  .mod:not(.active) .entry{color:#3d6a5c;text-shadow:none;border-color:#1a3440}
-  .mod.solved .entry{color:var(--green);border-style:solid;border-color:#2c6b50}
-  @keyframes blink{50%{opacity:0}}
-  .mod-foot{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.7px;color:#9dbdcc}
+/* ---------- tela inicial ---------- */
+#telaInicial{align-items:center;justify-content:center;overflow:auto;padding:16px}
+.cartao-inicial{
+  position:relative;z-index:2;width:min(920px,96vw);
+  background:linear-gradient(180deg,var(--paper),#f6e5cc);
+  border:3px solid var(--wood-d);border-radius:22px;
+  box-shadow:var(--shadow),inset 0 0 0 4px rgba(255,255,255,.5);
+  padding:16px 22px 20px;
+}
+.cabecalho-jogo{text-align:center;margin-bottom:12px}
+.logo{
+  font-size:clamp(26px,4vw,42px);font-weight:900;letter-spacing:.5px;
+  color:var(--terra-d);text-shadow:1px 2px 0 #fff,3px 4px 0 rgba(120,60,25,.18);
+  margin:0;line-height:1.1;
+}
+.logo span{color:var(--gold-d)}
+.sublogo{margin:4px 0 0;color:#5b3f2a;font-size:15px;font-weight:bold}
+.linha-opcoes{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}
+.rotulo-grupo{
+  font-size:11px;font-weight:900;letter-spacing:1.6px;color:var(--terra-d);
+  text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:8px;
+}
+.rotulo-grupo:after{content:"";flex:1;height:1px;background:var(--line)}
+.opcoes{display:grid;gap:8px}
+.opcoes.niveis{grid-template-columns:repeat(3,1fr)}
+.opcoes.modos{grid-template-columns:repeat(2,1fr)}
+.opcao{
+  position:relative;background:#fff;border:2px solid var(--line);border-radius:13px;
+  padding:8px 10px;text-align:left;transition:transform .12s,border-color .12s,box-shadow .12s;
+  min-height:64px;
+}
+.opcao:hover{transform:translateY(-2px);border-color:var(--gold)}
+.opcao.selecionada{border-color:var(--terra);box-shadow:0 0 0 3px rgba(198,91,57,.22);background:#fff7e9}
+.opcao .titulo-op{font-weight:900;font-size:15px;display:flex;align-items:center;gap:6px}
+.opcao .desc-op{font-size:11.5px;color:var(--ink-soft);line-height:1.35;margin-top:3px}
+.opcao .marca{
+  position:absolute;top:7px;right:8px;width:18px;height:18px;border-radius:50%;
+  border:2px solid var(--line);background:#fff;font-size:11px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;color:transparent;
+}
+.opcao.selecionada .marca{background:var(--terra);border-color:var(--terra-d);color:#fff}
+.rodape-inicial{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.sementela{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:bold;color:var(--ink-soft)}
+.sementela input{
+  width:96px;border:2px solid var(--line);border-radius:9px;padding:7px 8px;
+  font-weight:900;color:var(--ink);background:#fff;text-align:center;font-size:13px;
+}
+.btn{
+  border:none;border-radius:11px;padding:10px 18px;font-weight:900;font-size:14px;
+  color:#fff;background:linear-gradient(180deg,var(--gold),var(--gold-d));
+  box-shadow:0 4px 0 #9a6a12,0 7px 12px rgba(80,40,15,.25);
+  transition:transform .1s,box-shadow .1s,filter .1s;
+}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #9a6a12}
+.btn.primario{font-size:17px;padding:12px 30px;background:linear-gradient(180deg,#e06e46,var(--terra-d));box-shadow:0 4px 0 #7d321a,0 7px 14px rgba(80,30,10,.3)}
+.btn.secundario{background:linear-gradient(180deg,#7fae94,var(--mint-d));box-shadow:0 4px 0 #2f6647}
+.btn.pequeno{padding:8px 12px;font-size:12px}
+.dica-inicial{text-align:center;font-size:12px;color:#5b3f2a;font-weight:bold;margin:10px 0 0;line-height:1.5}
 
-  /* terminais */
-  .terminals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:auto}
-  .terminal{
-    position:relative;border:1px solid #2b4655;background:#09141b;border-radius:5px;
-    padding:6px 4px 6px 23px;min-height:35px;display:flex;align-items:center;
-    font-family:var(--mono);font-size:12px;color:#e5f6ff;cursor:pointer;transition:.14s;overflow:hidden;
-  }
-  .terminal::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
-  .terminal .tletter{position:absolute;left:8px;font-size:9px;color:var(--tc);font-weight:bold}
-  .terminal:hover{border-color:var(--tc);transform:translateY(-1px)}
-  .terminal.picked{background:#0f2a33;border-color:var(--cyan);box-shadow:0 0 14px rgba(63,224,255,.3)}
-  .mod.solved .terminal{cursor:default;opacity:.72}
-  .mod.solved .terminal.correct{opacity:1;border-color:var(--green);box-shadow:0 0 12px rgba(72,240,164,.3)}
+/* ---------- HUD ---------- */
+#telaJogo{background:linear-gradient(180deg,#8e4e2e,#6b381f)}
+.hud{
+  position:relative;z-index:3;flex:0 0 auto;min-height:72px;
+  background:linear-gradient(180deg,#4b2b1b,#352017);
+  border-bottom:3px solid #23130c;box-shadow:0 6px 16px rgba(0,0,0,.35);
+  display:flex;align-items:center;gap:10px;padding:8px 14px;color:#ffe9c8;
+}
+.hud bloco, .bloco{display:block}
+.hud-item{
+  display:flex;flex-direction:column;justify-content:center;
+  background:rgba(255,235,200,.09);border:1px solid rgba(255,220,170,.18);
+  border-radius:10px;padding:5px 11px;min-width:74px;
+}
+.hud-item .lbl{font-size:9px;letter-spacing:1.3px;font-weight:900;color:#d7ae85;text-transform:uppercase}
+.hud-item .val{font-size:19px;font-weight:900;line-height:1.1;font-variant-numeric:tabular-nums;color:#fff3dc}
+.hud-item .val.pequeno{font-size:14px}
+.tempo-val.critical{color:#ff8b7a;animation:pisca .6s infinite alternate}
+@keyframes pisca{from{opacity:1}to{opacity:.55}}
+.estrelas{font-size:17px;letter-spacing:2px;white-space:nowrap;line-height:1}
+.hud-espaco{flex:1}
+.btn-mudo{
+  background:rgba(255,235,200,.12);border:1px solid rgba(255,220,170,.28);color:#ffe9c8;
+  border-radius:10px;padding:9px 12px;font-weight:900;font-size:13px;min-width:92px;
+}
+.btn-mudo:hover{background:rgba(255,235,200,.2)}
+.barra-tempo{
+  position:relative;z-index:3;height:9px;background:#3a2116;flex:0 0 auto;
+  border-bottom:1px solid #1e1009;overflow:hidden;
+}
+.barra-tempo > i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#7fd0a0,#f2b440);transition:width .12s linear,background .3s}
+.barra-tempo.perigo > i{background:linear-gradient(90deg,#ff6b5c,#ffb057)}
+.selo-alerta{
+  display:none;position:absolute;bottom:92px;left:50%;right:auto;transform:translateX(-50%);z-index:6;
+  background:#d94a3e;color:#fff;font-weight:900;font-size:11px;letter-spacing:1.5px;
+  padding:5px 12px;border-radius:20px;box-shadow:0 4px 12px rgba(0,0,0,.3);
+  border:2px solid #fff3d6;animation:pisca .5s infinite alternate;
+}
+.selo-alerta.visivel{display:block}
+.selo-alerta{max-width:min(680px,90%);text-align:center}
 
-  /* console */
-  .console{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;margin-top:12px;padding-top:11px;border-top:1px dashed var(--line)}
-  .entry-head{background:#04090d;border:1px solid var(--line2);border-radius:6px;padding:7px 12px;min-height:48px;display:flex;align-items:center;gap:8px}
-  .entry-head .big{font-size:24px;letter-spacing:5px;color:var(--green);text-shadow:0 0 10px rgba(72,240,164,.45)}
-  .keypad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(4,36px);gap:5px}
-  .key{
-    background:linear-gradient(180deg,#142733,#0c1a22);border:1px solid #2a4a5b;border-radius:5px;
-    color:#d9f1fb;font-family:var(--mono);font-size:14px;cursor:pointer;transition:.08s;
-    box-shadow:0 2px 0 #071015,inset 0 1px 0 rgba(255,255,255,.05);
-  }
-  .key:hover{border-color:var(--cyan);color:#fff}
-  .key:active,.key.press{transform:translateY(2px);box-shadow:0 0 0 #071015;background:#15313f}
-  .key.ok{color:var(--green);border-color:#2c6b50;font-size:11px;letter-spacing:1px}
-  .key.del{color:var(--red)}
+/* ---------- cozinha ---------- */
+.cozinha{
+  position:relative;z-index:2;flex:1;min-height:0;display:grid;
+  grid-template-columns:300px minmax(0,1fr) 218px;gap:12px;padding:12px;
+}
+.painel{
+  background:linear-gradient(180deg,var(--paper),#f2e0c4);
+  border:2px solid var(--wood-d);border-radius:15px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;
+}
+.painel-titulo{
+  background:linear-gradient(180deg,var(--wood),var(--wood-d));color:#fff3dc;
+  font-size:11px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;
+  padding:8px 12px;display:flex;align-items:center;gap:7px;flex:0 0 auto;
+}
+.painel-titulo .bolinha{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 2px rgba(255,255,255,.25)}
 
-  /* cofre */
-  .vault{display:flex;flex-direction:column;align-items:stretch}
-  .vault-head{justify-content:center;color:var(--cyan);letter-spacing:3px}
-  .door-wrap{flex:1;display:grid;place-items:center;position:relative;padding:4px 0 8px}
-  .door{
-    position:relative;width:206px;height:206px;border-radius:50%;
-    background:
-      repeating-conic-gradient(from 0deg,#0d1b24 0 6deg,#122530 6deg 12deg);
-    border:2px solid #2b5061;
-    box-shadow:0 0 0 8px #0a141b,0 0 0 10px #21404e,0 14px 34px rgba(0,0,0,.7),inset 0 0 28px rgba(0,0,0,.9);
-    transition:transform .9s cubic-bezier(.2,.8,.2,1),box-shadow .5s;
-  }
-  .door::before{
-    content:"";position:absolute;inset:22px;border-radius:50%;
-    border:1px dashed #30586a;animation:spin 28s linear infinite;
-  }
-  .door::after{
-    content:"";position:absolute;inset:44px;border-radius:50%;
-    border:3px solid transparent;border-top-color:var(--cyan);border-right-color:var(--cyan-d);
-    opacity:.55;animation:spin 9s linear infinite reverse;
-  }
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .door-core{
-    position:absolute;inset:62px;border-radius:50%;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#16333f,#061015 72%);
-    border:2px solid #2b5061;box-shadow:inset 0 0 22px #000,0 0 18px rgba(63,224,255,.12);
-    transition:.5s;
-  }
-  .door-core b{font-size:26px;color:var(--cyan);text-shadow:0 0 12px rgba(63,224,255,.6)}
-  .door-core small{font-size:8px;letter-spacing:1.8px;color:var(--dim)}
-  .door.open{transform:rotate(28deg) scale(1.05);box-shadow:0 0 0 8px #0a141b,0 0 0 10px var(--green),0 0 60px rgba(72,240,164,.45),inset 0 0 28px #000}
-  .door.open .door-core{background:radial-gradient(circle,#1d6b50,#06150f 75%);border-color:var(--green)}
-  .door.open .door-core b{color:var(--green);text-shadow:0 0 16px var(--green)}
-  .segments{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:9px}
-  .seg{height:7px;border-radius:3px;background:#274b5c;border:1px solid #4a7d91;box-shadow:inset 0 0 3px #000;transition:.3s}
-  .seg.on{background:var(--green);border-color:var(--green);box-shadow:0 0 10px rgba(72,240,164,.65)}
-  .vault-foot{display:flex;justify-content:center;font-size:9px;letter-spacing:1.4px;color:var(--dim);border-top:1px dashed var(--line);padding-top:9px}
-  .vault-foot b{color:var(--amber);font-weight:400}
-  .footer{text-align:center;margin-top:9px;color:#9dbdcc;font-size:9.5px;letter-spacing:1.3px}
+/* comanda */
+.ticket{padding:0;position:relative}
+.ticket:after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:12px;
+  background:repeating-linear-gradient(135deg,transparent 0 8px,rgba(150,80,40,.10) 8px 10px);
+  pointer-events:none;
+}
+.ticket-corpo{padding:12px 13px;overflow:auto;flex:1;min-height:0}
+.ticket-topo{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pill{
+  background:var(--terra);color:#fff;font-size:10px;font-weight:900;letter-spacing:1px;
+  padding:4px 9px;border-radius:20px;
+}
+.prato-emoji{font-size:30px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.2))}
+.ticket h2{font-size:20px;margin:0 0 10px;color:var(--terra-d);line-height:1.15}
+.secao{margin-bottom:11px}
+.secao .lbl{
+  display:block;font-size:9.5px;font-weight:900;letter-spacing:1.3px;color:var(--ink-soft);
+  text-transform:uppercase;margin-bottom:3px;
+}
+.secao p{margin:0;font-size:14px;line-height:1.45;font-weight:bold}
+.secao.destaque{
+  background:#fff3d6;border:2px dashed var(--gold-d);border-radius:11px;padding:9px 10px;
+}
+.secao.destaque p{font-size:15px;color:#7c3d14}
+.equivalencia{
+  margin-top:4px;background:#e6f3ea;border:1.5px solid #9ac9aa;border-radius:10px;
+  padding:7px 9px;font-size:13px;font-weight:900;color:#2f6c49;line-height:1.35;
+}
+.dica-ticket{
+  margin-top:9px;font-size:11px;color:var(--ink-soft);line-height:1.45;
+  border-top:1px dashed var(--line);padding-top:8px;
+}
 
-  /* overlays */
-  .overlay{
-    position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:18px;
-    background:radial-gradient(ellipse at center,rgba(4,10,15,.96),rgba(1,3,5,.995));
-    backdrop-filter:blur(7px);
-  }
-  .overlay.hidden{display:none}
-  .dialog{
-    width:min(760px,100%);
-    background:
-      radial-gradient(circle at 12px 12px,#517b8c 0 2px,#0d1d26 2.5px 4px,transparent 4.5px),
-      radial-gradient(circle at calc(100% - 12px) 12px,#517b8c 0 2px,#0d1d26 2.5px 4px,transparent 4.5px),
-      radial-gradient(circle at 12px calc(100% - 12px),#517b8c 0 2px,#0d1d26 2.5px 4px,transparent 4.5px),
-      radial-gradient(circle at calc(100% - 12px) calc(100% - 12px),#517b8c 0 2px,#0d1d26 2.5px 4px,transparent 4.5px),
-      repeating-linear-gradient(135deg,rgba(255,255,255,.014) 0 1px,transparent 1px 6px),
-      linear-gradient(180deg,#10212c,#091319);
-    border:1px solid var(--line2);border-radius:14px;padding:24px 28px 26px;
-    box-shadow:0 24px 80px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.05);
-    max-height:94vh;overflow:auto;
-  }
-  .dialog h1{margin:0;font-size:30px;letter-spacing:6px;color:#eaf9ff;text-shadow:0 0 20px rgba(63,224,255,.4);text-align:center}
-  .dialog .kicker{text-align:center;color:var(--cyan);font-size:10px;letter-spacing:3.4px;margin-top:7px}
-  .dialog .intro{text-align:center;color:#c2dae5;font-size:12px;line-height:1.7;margin:14px auto 20px;max-width:560px}
-  .group-title{font-size:10px;letter-spacing:2.6px;color:var(--amber);border-bottom:1px dashed var(--line);padding-bottom:7px;margin:16px 0 10px}
-  .options{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-  .options.two{grid-template-columns:repeat(2,1fr)}
-  .opt{
-    border:1px solid var(--line);border-radius:8px;padding:11px 12px;cursor:pointer;
-    background:linear-gradient(160deg,#101e28,#0a151b);transition:.15s;
-  }
-  .opt:hover{border-color:#3c6478;transform:translateY(-1px)}
-  .opt.selected{border-color:var(--cyan);background:linear-gradient(160deg,rgba(24,86,105,.55),rgba(10,32,42,.9));box-shadow:inset 3px 0 0 var(--cyan),0 0 0 1px rgba(63,224,255,.3),0 0 20px rgba(63,224,255,.13)}
-  .opt b{display:block;font-size:13px;letter-spacing:1.6px;color:#e6f7ff}
-  .opt.selected b{color:var(--cyan)}
-  .opt small{display:block;font-size:11px;line-height:1.55;color:#bdd6e1;margin-top:6px}
-  .seedrow{display:flex;gap:9px;align-items:center;margin-top:16px}
-  .seedrow label{font-size:10px;letter-spacing:2px;color:var(--dim)}
-  .seedrow input{
-    flex:1;background:#040a0e;border:1px solid var(--line2);border-radius:6px;color:var(--amber);
-    font-family:var(--mono);font-size:13px;padding:9px 11px;letter-spacing:1.4px;outline:none;
-  }
-  .seedrow input:focus{border-color:var(--cyan);box-shadow:0 0 12px rgba(63,224,255,.2)}
-  .mini-btn{background:#10222d;border:1px solid var(--line2);color:var(--cyan);border-radius:6px;padding:9px 13px;font-family:var(--mono);font-size:10px;letter-spacing:1.4px;cursor:pointer}
-  .mini-btn:hover{border-color:var(--cyan)}
-  .big-btn{
-    display:block;width:100%;margin-top:20px;padding:14px;border-radius:8px;cursor:pointer;
-    background:linear-gradient(180deg,#1d7f96,#11596e);border:1px solid var(--cyan);color:#eafcff;
-    font-family:var(--mono);font-size:15px;font-weight:bold;letter-spacing:4px;
-    box-shadow:0 8px 24px rgba(63,224,255,.2),inset 0 1px 0 rgba(255,255,255,.2);transition:.15s;
-  }
-  .big-btn:hover{filter:brightness(1.15);box-shadow:0 10px 30px rgba(63,224,255,.35)}
-  .big-btn.alt{background:linear-gradient(180deg,#163a4a,#0e2833);border-color:#35657a}
-  .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
-  .btn-row .big-btn{margin-top:0}
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 4px}
-  .stat{background:#081419;border:1px solid var(--line);border-radius:8px;padding:12px 8px;text-align:center}
-  .stat span{display:block;font-size:9px;letter-spacing:1.8px;color:var(--dim)}
-  .stat b{display:block;font-size:21px;margin-top:6px;color:var(--cyan);text-shadow:0 0 12px rgba(63,224,255,.4)}
-  .stat.hl b{color:var(--green);text-shadow:0 0 12px rgba(72,240,164,.4)}
-  .reason{text-align:center;font-size:11.5px;letter-spacing:1.4px;color:#ffcc7a;margin-top:8px}
-  .dialog.lose h1{color:#ffe3e6;text-shadow:0 0 20px rgba(255,79,96,.45)}
-  .dialog.lose .kicker{color:#ff8d99}
-  .dialog.lose .reason{color:#ffb0ba}
-  .dialog.lose .stat.hl b{color:var(--red);text-shadow:0 0 12px rgba(255,79,96,.45)}
-  .flash{position:fixed;inset:0;z-index:90;pointer-events:none;opacity:0;background:rgba(255,79,96,.16)}
-  .flash.go{animation:flash .35s ease-out}
-  @keyframes flash{30%{opacity:1}to{opacity:0}}
+/* bancada */
+.bancada{flex-direction:column;padding:0}
+.bancada-cabecalho{
+  flex:0 0 auto;display:flex;align-items:center;gap:9px;
+  background:linear-gradient(180deg,#b96c3e,#8a4a28);color:#fff4e2;
+  border-bottom:3px solid #60331c;padding:7px 12px;
+}
+.panelinha{font-size:11px;font-weight:900;letter-spacing:1.3px;text-transform:uppercase;opacity:.95}
+.panela-pequena{margin-left:auto;font-size:10px;opacity:.85;font-weight:bold}
+.bancada-corpo{
+  flex:1;min-height:0;overflow:auto;position:relative;padding:12px;
+  background:
+    radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.25),transparent 55%),
+    repeating-linear-gradient(90deg,rgba(90,45,20,.06) 0 2px,transparent 2px 44px),
+    linear-gradient(180deg,#d8a273,#b77c50);
+}
+.bancada-corpo:before{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:18px;
+  background:linear-gradient(180deg,transparent,rgba(80,38,18,.22));pointer-events:none;
+}
+#areaDesafio,#feedSlot,.instrucao-bancada{position:relative;z-index:1}
+.decor-bancada{
+  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  width:min(330px,72%);opacity:.20;pointer-events:none;z-index:0;
+}
+.decor-bancada .vapor{stroke:#fff;stroke-width:5;fill:none;stroke-linecap:round}
+.instrucao-bancada{
+  font-size:12px;font-weight:900;color:#5b2f16;text-align:center;margin:0 0 10px;
+  text-shadow:0 1px 0 rgba(255,255,255,.35);
+}
+.ingredientes{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));align-items:start;max-width:820px;margin:0 auto}
+.recipiente{
+  position:relative;
+  background:linear-gradient(180deg,#fffaf1,#f4e3c9);border:2px solid #9a6339;
+  border-radius:14px;padding:8px;text-align:center;box-shadow:0 5px 10px rgba(80,35,12,.22);
+  transition:transform .14s;
+}
+.recipiente.bump{animation:bump .28s ease}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.055) rotate(-1deg)}100%{transform:scale(1)}}
+.recipiente svg{width:100%;height:auto;max-height:96px;display:block;overflow:visible}
+.recipiente .nome{
+  font-size:12.5px;font-weight:900;color:#5b341e;line-height:1.2;margin:3px 0 1px;
+  min-height:30px;display:flex;align-items:center;justify-content:center;
+}
+.recipiente .medida{font-size:21px;font-weight:900;color:var(--terra-d);font-variant-numeric:tabular-nums;line-height:1}
+.recipiente .medida small{font-size:11px;color:var(--ink-soft);font-weight:bold}
+.recipiente .meta{font-size:10px;font-weight:900;color:#2f6c49;margin-top:2px}
+.recipiente.bloqueado{opacity:.97}
+.recipiente.bloqueado:after{content:"🔒";position:absolute;font-size:13px}
+.controles{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:7px}
+.controles button{
+  border:1px solid #b98a5f;background:linear-gradient(180deg,#fff,#f0dcc0);color:#6b3a1d;
+  border-radius:7px;padding:5px 0;font-size:11px;font-weight:900;box-shadow:0 2px 0 #d1ab83;
+  font-variant-numeric:tabular-nums;
+}
+.controles button:hover{background:#fff2cf}
+.controles button:active{transform:translateY(2px);box-shadow:none}
+.controles button:disabled{opacity:.4;cursor:not-allowed}
+.recipiente.faltando{border-color:var(--terra);box-shadow:0 0 0 3px rgba(198,91,57,.25),0 5px 10px rgba(80,35,12,.22)}
+.aviso-falta{
+  background:#fff1cf;border:2px solid var(--gold-d);border-radius:10px;padding:6px 10px;
+  font-size:13px;font-weight:900;color:#7c4a12;text-align:center;margin-bottom:10px;
+}
+.resposta-box{
+  margin:12px auto 2px;max-width:460px;display:flex;align-items:center;justify-content:center;
+  gap:9px;background:#fffaf0;border:2px solid var(--wood);border-radius:13px;padding:10px;
+  box-shadow:0 5px 12px rgba(80,35,12,.2);flex-wrap:wrap;
+}
+.resposta-box label{font-size:13px;font-weight:900;color:#6b3a1d}
+.resposta-box input{
+  width:130px;text-align:center;font-size:24px;font-weight:900;color:var(--terra-d);
+  border:2px solid var(--gold);border-radius:9px;padding:5px 7px;background:#fffdf8;
+  outline:none;user-select:text;
+}
+.resposta-box input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,143,184,.22)}
+.resposta-box .unidade{font-size:16px;font-weight:900;color:#6b3a1d;min-width:34px}
+.tecla-dica{font-size:10px;color:var(--ink-soft);font-weight:bold;text-align:center;width:100%}
 
-  @media(max-width:1120px){
-    .main{grid-template-columns:1fr}
-    .vault{flex-direction:row;align-items:center;gap:16px;flex-wrap:wrap}
-    .vault-head{border:0;margin:0;padding:0;width:100%}
-    .door-wrap{flex:0 0 150px;padding:0}.door{width:140px;height:140px}.door-core{inset:42px}.door-core b{font-size:18px}
-    .segments{flex:1;min-width:180px;margin:0}.vault-foot{width:100%}
-  }
-  @media(max-width:760px){
-    #app{padding:10px}.topbar{grid-template-columns:1fr;gap:8px;text-align:center}
-    .brand,.status-wrap{justify-content:center}.status-wrap{align-items:center}.timer{min-width:0;font-size:36px}
-    .modules.cols-2 .mod,.modules.cols-5 .mod,.modules.cols-5 .mod.wide,.mod{grid-column:span 6}
-    .console{grid-template-columns:1fr}.keypad{justify-content:center}
-    .options,.options.two{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}
-    .brand-title{font-size:15px}.dialog{padding:18px}
-  }
+/* conversão */
+.conversao-cena{display:flex;flex-direction:column;align-items:center;gap:8px}
+.balanca{width:min(320px,100%);height:auto;filter:drop-shadow(0 6px 5px rgba(70,30,10,.25))}
+.balanca .prato-txt{font-size:15px;font-weight:900;fill:#5b341e}
+.balanca .prato-sub{font-size:10px;font-weight:bold;fill:#8a633f}
+.equiv-grande{
+  background:#e6f3ea;border:2px solid #7fb694;border-radius:12px;padding:8px 16px;
+  font-size:17px;font-weight:900;color:#2f6c49;text-align:center;
+}
+
+/* jarras */
+.jarras{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:11px}
+.jarra{
+  background:#fffaf0;border:2px solid #b98a5f;border-radius:13px;padding:8px;
+  text-align:center;box-shadow:0 5px 10px rgba(80,35,12,.2);transition:transform .12s,box-shadow .12s,border-color .12s;
+}
+.jarra:hover{transform:translateY(-3px)}
+.jarra.selecionada{border-color:var(--terra);box-shadow:0 0 0 4px rgba(198,91,57,.28),0 6px 12px rgba(80,35,12,.25)}
+.jarra .jarro-nome{font-size:12px;font-weight:900;color:#6b3a1d;margin-bottom:5px}
+.jarra-vidro{
+  height:112px;border:3px solid #b9d3dc;border-top:none;border-radius:6px 6px 16px 16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(220,238,242,.5));
+  display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;
+  position:relative;box-shadow:inset 0 0 10px rgba(80,120,140,.18);
+}
+.jarra-vidro:after{content:"";position:absolute;left:8px;top:8px;width:7px;height:62%;background:rgba(255,255,255,.5);border-radius:6px;transform:rotate(8deg)}
+.camada{min-height:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.jarra .valores{font-size:11px;font-weight:900;color:#5b341e;margin-top:6px;line-height:1.35}
+.tecla-jarro{display:inline-block;background:#6b3a1d;color:#fff;border-radius:5px;padding:0 5px;font-size:10px;margin-right:3px}
+
+/* ações */
+.acoes{
+  flex:0 0 auto;display:flex;gap:10px;justify-content:center;align-items:center;
+  padding:9px;background:linear-gradient(180deg,rgba(90,45,20,.18),rgba(60,28,12,.28));
+  border-top:2px solid rgba(90,45,20,.3);
+}
+.acoes .btn{min-width:130px}
+.btn.primario.incompleto{filter:saturate(.6);opacity:.82}
+
+/* painel lateral */
+.lateral-gap{display:flex;flex-direction:column;gap:10px;min-height:0}
+.lateral{padding:0}
+.lateral-corpo{padding:10px 11px;overflow:auto;flex:1;min-height:0}
+.linha-prop{
+  display:flex;justify-content:space-between;gap:6px;align-items:baseline;
+  font-size:12px;font-weight:bold;padding:5px 0;border-bottom:1px dashed var(--line);
+}
+.linha-prop b{font-size:14px;color:var(--terra-d);font-variant-numeric:tabular-nums;white-space:nowrap}
+.razao-atual{
+  margin-top:9px;background:#fff3d6;border:2px solid var(--gold);border-radius:10px;
+  padding:7px;text-align:center;font-size:12px;font-weight:900;color:#7c4a12;
+  overflow-wrap:anywhere;line-height:1.4;
+}
+.razao-atual b{font-size:15px;display:block;margin-top:2px;color:var(--terra-d)}
+.razao-atual small{display:block;font-size:10px;font-weight:bold;color:#8a633f;margin-top:3px;line-height:1.3}
+.micro-titulo{font-size:10px;font-weight:900;letter-spacing:1.2px;color:var(--terra-d);text-transform:uppercase;margin:4px 0 5px}
+.atalho{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);padding:3px 0;font-weight:bold}
+kbd{
+  background:#fff;border:1px solid #c9a87f;border-bottom-width:2px;border-radius:5px;
+  padding:0 5px;font-size:10px;font-family:consolas,monospace;color:#6b3a1d;font-weight:900;
+}
+.progresso-meta{font-size:12px;font-weight:900;color:var(--ink-soft);text-align:center;margin-top:6px}
+.pontos-grandes{font-size:26px;font-weight:900;color:var(--terra-d);text-align:center;font-variant-numeric:tabular-nums}
+
+/* feedback */
+.feedback{
+  position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.85);
+  z-index:8;min-width:250px;max-width:min(460px,88%);
+  background:#fffaf0;border:4px solid var(--mint);border-radius:18px;
+  box-shadow:0 16px 40px rgba(40,15,5,.45);padding:14px 20px;text-align:center;
+  opacity:0;pointer-events:none;animation:fb .95s ease forwards;
+}
+.feedback.erro{border-color:var(--red)}
+.feedback .fb-titulo{font-size:24px;font-weight:900;color:var(--mint-d)}
+.feedback.erro .fb-titulo{color:var(--red)}
+.feedback .fb-texto{font-size:13px;font-weight:bold;color:var(--ink-soft);margin-top:5px;line-height:1.45}
+@keyframes fb{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.04)}
+  28%{transform:translate(-50%,-50%) scale(1)}
+  78%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-58%) scale(.96)}
+}
+.vapor{position:absolute;pointer-events:none;opacity:.55;animation:subir 2.6s ease-out infinite}
+@keyframes subir{0%{transform:translateY(0) scale(.7);opacity:.5}100%{transform:translateY(-42px) scale(1.5);opacity:0}}
+
+/* ---------- tela final ---------- */
+#telaFim{align-items:center;justify-content:center;padding:16px;overflow:auto}
+.cartao-fim{
+  position:relative;z-index:2;width:min(680px,96vw);
+  background:linear-gradient(180deg,var(--paper),#f1dec1);
+  border:3px solid var(--wood-d);border-radius:22px;box-shadow:var(--shadow);
+  padding:20px 26px;text-align:center;
+}
+.cartao-fim h1{margin:0;font-size:clamp(26px,4vw,40px);color:var(--terra-d);text-shadow:1px 2px 0 #fff}
+.cartao-fim .subtitulo{color:var(--ink-soft);font-weight:bold;font-size:14px;margin:6px 0 16px}
+.grade-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat{background:#fff;border:2px solid var(--line);border-radius:12px;padding:10px 6px}
+.stat .n{font-size:25px;font-weight:900;color:var(--terra-d);font-variant-numeric:tabular-nums;line-height:1.1}
+.stat .l{font-size:10px;font-weight:900;letter-spacing:.8px;color:var(--ink-soft);text-transform:uppercase;margin-top:3px}
+.semente-final{font-size:12px;color:var(--ink-soft);font-weight:bold;margin-bottom:14px}
+.semente-final b{color:var(--ink);font-size:14px}
+.botoes-fim{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+@media(max-width:1150px){
+  .cozinha{grid-template-columns:270px minmax(0,1fr)}
+  .lateral{display:none}
+}
+@media(max-width:800px){
+  .cozinha{grid-template-columns:1fr;overflow:auto}
+  .ticket{max-height:250px}
+  .bancada{min-height:420px}
+  .hud{flex-wrap:wrap}
+  .opcoes.niveis{grid-template-columns:1fr}
+  .opcoes.modos{grid-template-columns:1fr}
+}
+@media(max-height:720px){
+  .cartao-inicial{padding:10px 18px 12px}
+  .cabecalho-jogo{margin-bottom:8px}
+  .opcao{min-height:56px;padding:6px 9px}
+  .logo{font-size:30px}
+  .dica-inicial{margin-top:6px}
+}
 </style>
 </head>
 <body>
-
 <div id="app">
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark">◈</div>
-      <div>
-        <div class="brand-title">COFRE MATEMÁTICO</div>
-        <div class="brand-sub">TERMINAL DE DESARME // PROTOCOLO ÔMEGA</div>
-      </div>
-    </div>
-    <div class="timer-wrap">
-      <div class="timer-label">Tempo restante</div>
-      <div id="timer" class="timer" data-testid="timer">02:00.0</div>
-      <div id="modeTag" class="mode-tag">CONTRA O RELÓGIO</div>
-      <div id="alertBadge" class="alert-badge" data-testid="alert">⚠ ALERTA · ÚLTIMOS SEGUNDOS</div>
-    </div>
-    <div class="status-wrap">
-      <div class="status-row"><span class="status-label">Falhas</span><div id="leds" class="leds"></div><span id="failCount" class="fail-count" data-testid="fail-count">0/3</span></div>
-      <div class="status-row"><span class="status-label">Pontos</span><span id="score" class="score">0000</span></div>
-      <button id="muteBtn" class="icon-btn" data-testid="mute">◉ SOM</button>
-    </div>
-  </header>
 
-  <main class="main">
-    <section class="panel-wrap">
-      <div class="panel-head"><span>Banco de módulos // desarme sequencial</span><span id="progressText">0 / 4 DESBLOQUEADOS</span></div>
-      <div id="modules" class="modules cols-2" data-testid="modules"></div>
-      <div class="console">
+  <!-- ============ TELA INICIAL ============ -->
+  <section id="telaInicial" class="tela ativa">
+    <div class="fundo-cozinha"></div>
+    <div class="cartao-inicial">
+      <div class="cabecalho-jogo">
+        <h1 class="logo">🍳 Cozinha de <span>Proporções</span> 🥧</h1>
+        <p class="sublogo">Ajuste, escale e converta — o sabor exato está na matemática!</p>
+      </div>
+
+      <div class="linha-opcoes">
         <div>
-          <div class="console-label" style="margin-bottom:6px">Entrada · módulo ativo</div>
-          <div class="entry-head"><span class="big" id="entryText" data-testid="entry">—</span><span class="caret"></span></div>
+          <div class="rotulo-grupo">👨‍🍳 1 · Escolha seu nível</div>
+          <div class="opcoes niveis">
+            <button class="opcao selecionada" data-nivel="aprendiz">
+              <span class="marca">✓</span>
+              <div class="titulo-op">🌱 Aprendiz</div>
+              <div class="desc-op">Razões simples (1:2, 2:3), escalas de 2× e 3×, tempo folgado.</div>
+            </button>
+            <button class="opcao" data-nivel="sous">
+              <span class="marca">✓</span>
+              <div class="titulo-op">🔪 Sous-Chef</div>
+              <div class="desc-op">Razões 3:4 e 2:5, descubra o ingrediente que falta, meia receita e conversões kg↔g, L↔mL.</div>
+            </button>
+            <button class="opcao" data-nivel="chef">
+              <span class="marca">✓</span>
+              <div class="titulo-op">👑 Chef</div>
+              <div class="desc-op">3 ingredientes, escala + conversão, pedidos rápidos e penalidade maior.</div>
+            </button>
+          </div>
         </div>
-        <div id="keypad" class="keypad">
-          <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
-          <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
-          <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
-          <button class="key del" data-key="back">⌫</button><button class="key" data-key="0">0</button><button class="key ok" data-key="enter">ENTER</button>
+        <div>
+          <div class="rotulo-grupo">⏱️ 2 · Escolha o serviço</div>
+          <div class="opcoes modos">
+            <button class="opcao selecionada" data-modo="cronometrado">
+              <span class="marca">✓</span>
+              <div class="titulo-op">⏰ Turno Cronometrado</div>
+              <div class="desc-op">120 s para atender pedidos e somar pontos. Erros custam tempo e vidas.</div>
+            </button>
+            <button class="opcao" data-modo="continuo">
+              <span class="marca">✓</span>
+              <div class="titulo-op">🔥 Serviço Contínuo</div>
+              <div class="desc-op">Cada acerto aumenta o combo, ganha tempo extra e eleva a complexidade.</div>
+            </button>
+          </div>
         </div>
       </div>
-    </section>
 
-    <aside class="vault">
-      <div class="vault-head">Trava mestra</div>
-      <div class="door-wrap"><div id="door" class="door"><div class="door-core"><b id="doorPct">0%</b><small>DESARME</small></div></div></div>
-      <div id="segments" class="segments"></div>
-      <div class="vault-foot">SEED: <b id="seedLabel">—</b></div>
-    </aside>
-  </main>
+      <div class="rodape-inicial">
+        <label class="sementela">Semente: <input id="inpSemente" inputmode="numeric" maxlength="9" placeholder="aleatória"></label>
+        <button id="btnIniciar" class="btn primario">Iniciar Serviço ▶</button>
+      </div>
+      <p class="dica-inicial">Mouse ou toque nos controles · <kbd>1</kbd>–<kbd>4</kbd> seleciona ingrediente/jarro · <kbd>↑</kbd><kbd>↓</kbd> ajusta · <kbd>Enter</kbd> serve · <kbd>Backspace</kbd> limpa · <kbd>M</kbd> muda o som</p>
+    </div>
+  </section>
 
-  <div class="footer">DÍGITOS 0-9 · BACKSPACE APAGA · ENTER CONFIRMA · TAB/SETAS ALTERNA · M MUDA ÁUDIO · CLIQUE NO MÓDULO PARA FOCAR</div>
+  <!-- ============ TELA DE JOGO ============ -->
+  <section id="telaJogo" class="tela">
+    <div class="fundo-cozinha"></div>
+    <header class="hud">
+      <div class="hud-item"><span class="lbl">🍽️ Entregues</span><span class="val" id="hudEntregues">0 / 10</span></div>
+      <div class="hud-item"><span class="lbl">🔥 Combo</span><span class="val" id="hudCombo">×0</span></div>
+      <div class="hud-item"><span class="lbl">⭐ Reputação</span><span class="val estrelas" id="hudVidas">★★★</span></div>
+      <div class="hud-item"><span class="lbl" id="hudTempoLbl">⏰ Tempo</span><span class="val tempo-val" id="hudTempo">2:00</span></div>
+      <div class="hud-espaco"></div>
+      <div class="hud-item"><span class="lbl">🌱 Semente</span><span class="val pequeno" id="hudSemente">—</span></div>
+      <button id="btnMudo" class="btn-mudo" title="Atalho: M">🔊 Som</button>
+    </header>
+    <div class="barra-tempo" id="barraTempo"><i id="barraTempoFill"></i></div>
+    <div class="selo-alerta" id="seloAlerta">⚠️ ATENÇÃO À BANCADA</div>
+
+    <main class="cozinha">
+      <aside class="painel ticket">
+        <div class="painel-titulo"><span class="bolinha"></span> 📋 Comanda do Cliente</div>
+        <div class="ticket-corpo" id="ticketCorpo"></div>
+      </aside>
+
+      <section class="painel bancada">
+        <div class="bancada-cabecalho">
+          <span class="panelinha">🧑‍🍳 Bancada de Preparo</span>
+          <span class="panela-pequena" id="estadoBancada">Aguardando ingredientes…</span>
+        </div>
+        <div class="bancada-corpo" id="bancadaCorpo">
+          <p class="instrucao-bancada" id="instrucaoBancada"></p>
+          <div id="areaDesafio"></div>
+          <div id="feedSlot"></div>
+          <div class="decor-bancada" aria-hidden="true">
+            <svg viewBox="0 0 330 150">
+              <path class="vapor" style="animation-delay:0s" d="M120 62 Q108 44 120 26 Q132 10 120 -4"/>
+              <path class="vapor" style="animation-delay:.8s" d="M165 58 Q153 40 165 22 Q177 6 165 -8"/>
+              <path class="vapor" style="animation-delay:1.6s" d="M210 62 Q198 44 210 26 Q222 10 210 -4"/>
+              <path d="M78 66 H252 Q244 122 165 122 Q86 122 78 66 Z" fill="#6b3a1d"/>
+              <ellipse cx="165" cy="66" rx="87" ry="13" fill="#8a5a34"/>
+              <ellipse cx="165" cy="66" rx="76" ry="9" fill="#c9823f"/>
+              <path d="M78 72 Q48 72 52 92 Q56 106 76 100" fill="none" stroke="#6b3a1d" stroke-width="8"/>
+              <path d="M252 72 Q282 72 278 92 Q274 106 254 100" fill="none" stroke="#6b3a1d" stroke-width="8"/>
+              <rect x="92" y="122" width="146" height="8" rx="4" fill="#4b2714"/>
+            </svg>
+          </div>
+        </div>
+        <div class="acoes">
+          <button id="btnLimpar" class="btn secundario">🧹 Limpar Bancada</button>
+          <button id="btnServir" class="btn primario">✅ Servir Pedido</button>
+        </div>
+      </section>
+
+      <aside class="lateral-gap">
+        <div class="painel lateral">
+          <div class="painel-titulo"><span class="bolinha"></span> ⚖️ Bancada Agora</div>
+          <div class="lateral-corpo">
+            <div id="linhasProporcao"></div>
+            <div class="razão-atual" id="razãoAtual">Razão atual <b>—</b></div>
+          </div>
+        </div>
+        <div class="painel lateral">
+          <div class="painel-titulo"><span class="bolinha"></span> 📈 Serviço</div>
+          <div class="lateral-corpo">
+            <div class="micro-titulo">Pontuação</div>
+            <div class="pontos-grandes" id="hudPontos">0</div>
+            <div class="progresso-meta" id="metaTexto">Meta: 10 pedidos</div>
+            <div class="micro-titulo" style="margin-top:10px">Atalhos</div>
+            <div class="atalho"><span>Ajustar ingrediente</span><span><kbd>↑</kbd> <kbd>↓</kbd></span></div>
+            <div class="atalho"><span>Alternar item</span><span><kbd>1</kbd>–<kbd>9</kbd></span></div>
+            <div class="atalho"><span>Servir pedido</span><span><kbd>Enter</kbd></span></div>
+            <div class="atalho"><span>Limpar bancada</span><span><kbd>⌫</kbd></span></div>
+            <div class="atalho"><span>Mudo</span><span><kbd>M</kbd></span></div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </section>
+
+  <!-- ============ TELA FINAL ============ -->
+  <section id="telaFim" class="tela">
+    <div class="fundo-cozinha"></div>
+    <div class="cartao-fim">
+      <div style="font-size:46px" id="fimEmoji">🏆</div>
+      <h1 id="fimTitulo">Turno Encerrado!</h1>
+      <p class="subtitulo" id="fimMotivo">Você fechou o serviço.</p>
+      <div class="grade-stats">
+        <div class="stat"><div class="n" id="fimEntregues">0</div><div class="l">Pedidos entregues</div></div>
+        <div class="stat"><div class="n" id="fimTaxa">0%</div><div class="l">Taxa de acerto</div></div>
+        <div class="stat"><div class="n" id="fimCombo">0</div><div class="l">Maior combo</div></div>
+        <div class="stat"><div class="n" id="fimPontos">0</div><div class="l">Pontuação final</div></div>
+        <div class="stat"><div class="n" id="fimTempo">0:00</div><div class="l" id="fimTempoLbl">Tempo restante</div></div>
+        <div class="stat"><div class="n" id="fimErros">0</div><div class="l">Pedidos errados</div></div>
+      </div>
+      <div class="semente-final">Semente desta partida: <b id="fimSemente">—</b> · Nível: <b id="fimNivel">—</b></div>
+      <div class="botoes-fim">
+        <button id="btnNovoTurno" class="btn primario">🔄 Novo Turno (nova semente)</button>
+        <button id="btnRepetir" class="btn secundario">↺ Repetir Mesma Semente</button>
+        <button id="btnMenu" class="btn" style="background:linear-gradient(180deg,#b98a63,#8a5c39);box-shadow:0 4px 0 #6b4229">🏠 Menu</button>
+      </div>
+    </div>
+  </section>
 </div>
-
-<div id="setup" class="overlay" data-testid="setup">
-  <div class="dialog">
-    <h1>COFRE MATEMÁTICO</h1>
-    <div class="kicker">// TERMINAL DE DESARME — INICIALIZAÇÃO //</div>
-    <p class="intro">Desarme todos os módulos antes que o cronômetro zere. Cada módulo esconde um desafio matemático diferente. Use o teclado numérico, o painel tátil ou os terminais coloridos. Três falhas e o cofre se tranca definitivamente.</p>
-    <div class="group-title">01 · Nível de dificuldade</div>
-    <div class="options" id="levelOpts">
-      <div class="opt selected" data-level="iniciante"><b>INICIANTE</b><small>Operações até 50, tabuadas e sequências de passo fixo. 120 s · 4 módulos.</small></div>
-      <div class="opt" data-level="intermediario"><b>INTERMEDIÁRIO</b><small>Números de 2–3 algarismos, termo oculto nas 4 operações. 90 s · 5 módulos.</small></div>
-      <div class="opt" data-level="avancado"><b>AVANÇADO</b><small>Expressões de duas operações, sequências não triviais. 75 s · 6 módulos.</small></div>
-    </div>
-    <div class="group-title">02 · Modo de jogo</div>
-    <div class="options two" id="modeOpts">
-      <div class="opt selected" data-mode="clock"><b>CONTRA O RELÓGIO</b><small>Tempo fixo da dificuldade. Resolva tudo antes de zerar. Cada erro custa segundos.</small></div>
-      <div class="opt" data-mode="survival"><b>SOBREVIVÊNCIA</b><small>Comece com menos tempo. Cada módulo desarmado adiciona segundos bônus ao relógio.</small></div>
-    </div>
-    <div class="seedrow">
-      <label for="seedInput">SEMENTE</label>
-      <input id="seedInput" data-testid="seed" placeholder="deixe vazio para gerar" autocomplete="off" spellcheck="false">
-      <button id="rollSeed" class="mini-btn" type="button">GERAR</button>
-    </div>
-    <button id="startBtn" class="big-btn" data-testid="start">INICIAR DESARME</button>
-  </div>
-</div>
-
-<div id="summary" class="overlay hidden" data-testid="summary">
-  <div id="summaryDialog" class="dialog">
-    <h1 id="sumTitle">COFRE DESARMADO</h1>
-    <div id="sumKicker" class="kicker">// PROTOCOLO CONCLUÍDO //</div>
-    <div id="sumReason" class="reason"></div>
-    <div class="stats">
-      <div class="stat"><span>Módulos</span><b id="sumMods">0/4</b></div>
-      <div class="stat"><span>Tempo restante</span><b id="sumTime">00.0</b></div>
-      <div class="stat"><span>Precisão</span><b id="sumAcc">100%</b></div>
-      <div class="stat hl"><span>Pontuação</span><b id="sumScore">0000</b></div>
-    </div>
-    <div class="group-title">Semente da partida: <span id="sumSeed" style="color:#ffd08a;font-size:12px;letter-spacing:1.4px">—</span></div>
-    <div class="btn-row">
-      <button id="againNew" class="big-btn" data-testid="again-new">NOVA SEMENTE</button>
-      <button id="againSame" class="big-btn alt" data-testid="again-same">REPETIR SEMENTE</button>
-    </div>
-    <button id="backMenu" class="big-btn alt" style="margin-top:10px;font-size:11px;letter-spacing:2px">VOLTAR AO MENU</button>
-  </div>
-</div>
-
-<div id="flash" class="flash"></div>
 
 <script>
-/* ==GEN_START== */
-/* ===================================================================
-   NÚCLEO MATEMÁTICO PROCEDURAL — determinístico, sem DOM.
-   Extraído literalmente por trabalho/auditoria.mjs para os 6.000 testes.
-   =================================================================== */
-var CofreGen = (function () {
-  'use strict';
+"use strict";
 
-  var LIMITS = {
-    iniciante:     { add:50,  sub:50,  mulA:9,  mulB:9,  divQ:12,  seq:60,   opt:60,   expr:100  },
-    intermediario: { add:999, sub:999, mulA:99, mulB:12, divQ:99,  seq:999,  opt:999,  expr:1500 },
-    avancado:      { add:9999,sub:9999,mulA:99, mulB:99, divQ:999, seq:9999, opt:9999, expr:9999 }
+// ==GEN_START==  (núcleo procedural puro — sem DOM; extraído pela auditoria)
+const CAPS = {
+  aprendiz:{geral:30, conv:5000, ing:[2,2]},
+  sous:{geral:90, conv:9000, ing:[2,2]},
+  chef:{geral:2400, conv:25000, ing:[2,3]}
+};
+const RECEITAS = {
+  aprendiz:[
+    {nome:"Suco Cítrico",emoji:"🍊",porcoes:2,ing:[{n:"suco de laranja",q:2,u:"copos"},{n:"água",q:3,u:"copos"}]},
+    {nome:"Limonada da Vovó",emoji:"🍋",porcoes:2,ing:[{n:"limão",q:1,u:"copos"},{n:"água",q:4,u:"copos"}]},
+    {nome:"Vinagrete",emoji:"🥗",porcoes:2,ing:[{n:"azeite",q:1,u:"colheres"},{n:"vinagre",q:2,u:"colheres"}]},
+    {nome:"Calda Doce",emoji:"🍯",porcoes:2,ing:[{n:"açúcar",q:1,u:"xícaras"},{n:"água",q:2,u:"xícaras"}]},
+    {nome:"Massa Rápida",emoji:"🥞",porcoes:2,ing:[{n:"farinha",q:2,u:"xícaras"},{n:"leite",q:3,u:"xícaras"}]}
+  ],
+  sous:[
+    {nome:"Molho Taratour",emoji:"🥙",porcoes:4,ing:[{n:"tahine",q:3,u:"colheres"},{n:"água",q:4,u:"colheres"}]},
+    {nome:"Suco Tropical",emoji:"🥭",porcoes:4,ing:[{n:"polpa de manga",q:2,u:"copos"},{n:"suco de maracujá",q:5,u:"copos"}]},
+    {nome:"Creme Suave",emoji:"🥛",porcoes:4,ing:[{n:"creme de leite",q:3,u:"xícaras"},{n:"leite",q:5,u:"xícaras"}]},
+    {nome:"Farofa Doce",emoji:"🍰",porcoes:4,ing:[{n:"farinha",q:2,u:"colheres"},{n:"açúcar",q:5,u:"colheres"}]},
+    {nome:"Molho da Casa",emoji:"🍖",porcoes:4,ing:[{n:"molho de tomate",q:3,u:"colheres"},{n:"mel",q:5,u:"colheres"}]}
+  ],
+  chef:[
+    {nome:"Massa de Panqueca",emoji:"🥞",porcoes:4,ing:[{n:"farinha",q:150,u:"g"},{n:"ovos",q:2,u:"un"},{n:"leite",q:200,u:"mL"}]},
+    {nome:"Bolo de Cenoura",emoji:"🥕",porcoes:6,ing:[{n:"farinha",q:180,u:"g"},{n:"açúcar",q:120,u:"g"},{n:"ovos",q:3,u:"un"}]},
+    {nome:"Torta de Limão",emoji:"🥧",porcoes:6,ing:[{n:"biscoito",q:200,u:"g"},{n:"manteiga",q:100,u:"g"},{n:"limão",q:2,u:"un"}]},
+    {nome:"Suco Energético",emoji:"🍹",porcoes:4,ing:[{n:"abacaxi",q:2,u:"copos"},{n:"mamão",q:3,u:"copos"},{n:"água",q:5,u:"copos"}]},
+    {nome:"Creme de Milho",emoji:"🌽",porcoes:4,ing:[{n:"milho",q:300,u:"g"},{n:"leite",q:400,u:"mL"},{n:"ovos",q:2,u:"un"}]}
+  ]
+};
+const CONV = {
+  aprendiz:[
+    {from:"kg",to:"g",factor:1000,eq:"1 kg = 1.000 g",nome:"queijo"},
+    {from:"L",to:"mL",factor:1000,eq:"1 L = 1.000 mL",nome:"leite"}
+  ],
+  sous:[
+    {from:"kg",to:"g",factor:1000,eq:"1 kg = 1.000 g",nome:"queijo"},
+    {from:"L",to:"mL",factor:1000,eq:"1 L = 1.000 mL",nome:"leite"},
+    {from:"g",to:"kg",factor:1000,eq:"1.000 g = 1 kg",nome:"farinha"},
+    {from:"mL",to:"L",factor:1000,eq:"1.000 mL = 1 L",nome:"água"},
+    {from:"xícara",to:"mL",factor:250,eq:"1 xícara = 250 mL",nome:"açúcar"}
+  ],
+  chef:[
+    {from:"kg",to:"g",factor:1000,eq:"1 kg = 1.000 g",nome:"queijo"},
+    {from:"L",to:"mL",factor:1000,eq:"1 L = 1.000 mL",nome:"leite"},
+    {from:"g",to:"kg",factor:1000,eq:"1.000 g = 1 kg",nome:"farinha"},
+    {from:"mL",to:"L",factor:1000,eq:"1.000 mL = 1 L",nome:"água"},
+    {from:"xícara",to:"mL",factor:250,eq:"1 xícara = 250 mL",nome:"açúcar"}
+  ]
+};
+const TIPO_SALT = {escala:11,faltante:23,comparacao:37,conversao:53};
+const NIVEL_SALT = {aprendiz:7,sous:13,chef:19};
+
+function makeRng(seed){
+  let a = seed >>> 0;
+  return function(){
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+function ri(rng,a,b){ return a + Math.floor(rng()*(b-a+1)); }
+function pick(rng,arr){ return arr[Math.floor(rng()*arr.length)]; }
+function gcd(a,b){ while(b){ const t=a%b; a=b; b=t; } return a; }
+function ratioKey(vals){ let g=0; for(const v of vals) g=gcd(g,v); return vals.map(v=>v/g).join(":"); }
+function fmtDecimal(x){ return x.toFixed(3).replace(/0+$/,"").replace(/\.$/,"").replace(".",","); }
+function fmtInt(v){ return String(v).replace(/\B(?=(\d{3})+(?!\d))/g,"."); }
+function unidade(q,u){
+  if(Number(q)!==1) return u;
+  if(u==="copos") return "copo";
+  if(u==="colheres") return "colher";
+  if(u==="xícaras") return "xícara";
+  return u;
+}
+function passoDe(u){ return (u==="g"||u==="mL")?10:1; }
 
-  function hashSeed(str) {
-    var h = 1779033703 ^ String(str).length;
-    for (var i = 0; i < String(str).length; i++) {
-      h = Math.imul(h ^ String(str).charCodeAt(i), 3432918353);
-      h = (h << 13) | (h >>> 19);
-    }
-    h = Math.imul(h ^ (h >>> 16), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    return (h ^ (h >>> 16)) >>> 0;
+function textoBase(recipe){
+  return recipe.ing.map(i=>i.q+" "+unidade(i.q,i.u)+" de "+i.n).join(" + ");
+}
+function fatoresPermitidos(level){
+  return level==="aprendiz" ? [2,3] : [2,3,4,0.5];
+}
+function escolherFator(rng,level,recipe,caps){
+  const ks = fatoresPermitidos(level);
+  for(let t=0;t<60;t++){
+    const k = pick(rng,ks);
+    const metas = recipe.ing.map(i=>i.q*k);
+    const ok = metas.every(v=>Number.isInteger(v)&&v>0&&v<=caps.geral)
+      && Number.isInteger(recipe.porcoes*k)
+      && (k!==0.5 || recipe.ing.every(i=>i.q%2===0));
+    if(ok) return {k,metas};
   }
-  function mulberry32(a) {
-    return function () {
-      a |= 0; a = (a + 0x6D2B79F5) | 0;
-      var t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-  function rngFrom(seed) { return mulberry32(hashSeed(seed)); }
-  function ri(rng, a, b) { return a + Math.floor(rng() * (b - a + 1)); }
-  function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
-  function shuffle(rng, arr) {
-    var a = arr.slice();
-    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
-    return a;
-  }
-  function isPrime(n) {
-    if (n < 2) return false;
-    if (n % 2 === 0) return n === 2;
-    for (var i = 3; i * i <= n; i += 2) if (n % i === 0) return false;
-    return true;
-  }
+  return {k:2,metas:recipe.ing.map(i=>i.q*2)};
+}
 
-  /* ---------- 1. OPERAÇÃO DIRETA ---------- */
-  function genOperacao(rng, level) {
-    var L = LIMITS[level], a, b, c, d, q, kind, expr, ans;
-    var kinds = level === 'avancado' ? ['add', 'sub', 'mul', 'div', 'mix', 'mix'] : ['add', 'sub', 'mul', 'div'];
-    kind = pick(rng, kinds);
-
-    if (kind === 'add') {
-      a = ri(rng, 2, Math.floor(L.add / 2));
-      b = ri(rng, 1, L.add - a);
-      ans = a + b; expr = a + ' + ' + b;
-    } else if (kind === 'sub') {
-      a = ri(rng, 3, L.sub);
-      b = ri(rng, 1, a - 1);
-      ans = a - b; expr = a + ' \u2212 ' + b;
-    } else if (kind === 'mul') {
-      a = ri(rng, 2, L.mulA);
-      b = ri(rng, 2, L.mulB);
-      ans = a * b; expr = a + ' \u00d7 ' + b;
-    } else if (kind === 'div') {
-      d = ri(rng, 2, Math.min(12, L.mulB));
-      q = Math.max(2, Math.floor(L.expr / d));
-      ans = ri(rng, 2, Math.min(L.divQ, q));
-      a = d * ans; expr = a + ' \u00f7 ' + d;
-    } else {
-      var pat = ri(rng, 0, 4);
-      if (pat === 0) {
-        a = ri(rng, 2, 40); b = ri(rng, 2, 12); c = ri(rng, 1, 15);
-        expr = a + ' \u00d7 ' + b + ' + ' + c; ans = a * b + c;
-      } else if (pat === 1) {
-        a = ri(rng, 5, 40); b = ri(rng, 2, 15); c = ri(rng, 2, 12);
-        expr = '(' + a + ' + ' + b + ') \u00d7 ' + c; ans = (a + b) * c;
-      } else if (pat === 2) {
-        a = ri(rng, 10, 50); b = ri(rng, 1, a - 2); c = ri(rng, 2, 12);
-        expr = '(' + a + ' \u2212 ' + b + ') \u00d7 ' + c; ans = (a - b) * c;
-      } else if (pat === 3) {
-        a = ri(rng, 2, 40); b = ri(rng, 2, 12); c = ri(rng, 1, 20);
-        expr = a + ' + ' + b + ' \u00d7 ' + c; ans = a + b * c;
-      } else {
-        d = ri(rng, 2, 9); q = ri(rng, 2, 30); a = d * q; c = ri(rng, 2, 9);
-        expr = '(' + a + ' \u00f7 ' + d + ') \u00d7 ' + c; ans = q * c;
-      }
-    }
-    return {
-      type: 'operacao', title: 'Opera\u00e7\u00e3o direta', badge: 'C\u00c1LCULO',
-      prompt: 'Calcule o resultado', display: expr + ' = ?', answer: ans,
-      input: '', solved: false,
-      hint: kind === 'mix' ? 'Respeite a preced\u00eAncia' : 'Resposta exata'
-    };
-  }
-
-  /* ---------- 2. TERMO OCULTO ---------- */
-  function genTermo(rng, level) {
-    var L = LIMITS[level], a, b, ans, display;
-    var op = pick(rng, ['add', 'sub', 'mul', 'div']);
-    if (op === 'add') {
-      a = ri(rng, 1, Math.floor(L.add / 2));
-      ans = ri(rng, 1, L.add - a);
-      b = a + ans;
-      display = rng() < 0.5 ? a + ' + \u25a1 = ' + b : '\u25a1 + ' + a + ' = ' + b;
-    } else if (op === 'sub') {
-      if (rng() < 0.5) {
-        a = ri(rng, 2, L.sub); ans = ri(rng, 1, a); b = a - ans;
-        display = a + ' \u2212 \u25a1 = ' + b;
-      } else {
-        ans = ri(rng, 2, L.sub); b = ri(rng, 1, ans - 1); a = ans - b;
-        display = '\u25a1 \u2212 ' + b + ' = ' + a;
-      }
-    } else if (op === 'mul') {
-      a = ri(rng, 2, L.mulA); ans = ri(rng, 2, L.mulB); b = a * ans;
-      display = rng() < 0.5 ? a + ' \u00d7 \u25a1 = ' + b : '\u25a1 \u00d7 ' + a + ' = ' + b;
-    } else {
-      var d = ri(rng, 2, Math.min(12, L.mulB));
-      ans = ri(rng, 2, Math.min(L.divQ, Math.floor(L.expr / d)));
-      b = d * ans;
-      display = rng() < 0.5 ? b + ' \u00f7 \u25a1 = ' + d : b + ' \u00f7 ' + d + ' = \u25a1';
-    }
-    return {
-      type: 'termo', title: 'Termo oculto', badge: 'LACUNA',
-      prompt: 'Descubra o valor de \u25a1', display: display, answer: ans,
-      input: '', solved: false, hint: 'Inteiro positivo'
-    };
-  }
-
-  /* ---------- 3. SEQU\u00caNCIA ---------- */
-  function uniquePredictions(t) {
-    var out = {};
-    function add(v) { if (Number.isInteger(v) && v >= 0) out[v] = true; }
-    var d = t[1] - t[0];
-    if (d !== 0 && (t[2] - t[1]) === d && (t[3] - t[2]) === d) add(t[3] + d);
-    if (t[0] !== 0 && t[1] * t[1] === t[0] * t[2] && t[2] * t[2] === t[1] * t[3]) {
-      var num = t[3] * t[1], den = t[0];
-      if (num % den === 0) add(num / den);
-    }
-    var a = t[1] - t[0], b = t[2] - t[1];
-    if (a !== b && (t[3] - t[2]) === a) add(t[3] + b);
-    if (t[2] === t[0] + t[1] && t[3] === t[1] + t[2]) add(t[2] + t[3]);
-    var d1 = t[1] - t[0], d2 = t[2] - t[1], d3 = t[3] - t[2], s = d2 - d1;
-    if (s !== 0 && (d3 - d2) === s) add(t[3] + d3 + s);
-    return Object.keys(out).map(Number);
-  }
-  var RULE_NAMES = { PA: 'Progress\u00e3o aritm\u00e9tica', PG: 'Progress\u00e3o geom\u00e9trica', ALT: 'Alternada', FIB: 'Soma dos anteriores', DIF2: '2\u00aa diferen\u00e7a' };
-
-  function genSequencia(rng, level) {
-    var L = LIMITS[level];
-    var kinds = level === 'iniciante' ? ['PA', 'PA', 'PG']
-              : level === 'intermediario' ? ['PA', 'PG', 'ALT', 'FIB']
-              : ['PA', 'PG', 'ALT', 'FIB', 'DIF2'];
-    var t = [], k = 'PA', attempt, i;
-    for (attempt = 0; attempt < 100; attempt++) {
-      k = pick(rng, kinds); t = [];
-      if (k === 'PA') {
-        var d = level === 'iniciante' ? pick(rng, [2, 5, 10])
-              : (level === 'intermediario' ? ri(rng, 2, 25) * (rng() < 0.3 ? -1 : 1)
-              : ri(rng, 3, 40) * (rng() < 0.35 ? -1 : 1));
-        var s0 = ri(rng, 3, Math.max(4, Math.floor(L.seq / 2)));
-        for (i = 0; i < 5; i++) t.push(s0 + i * d);
-      } else if (k === 'PG') {
-        var r = level === 'iniciante' ? 2 : pick(rng, [2, 2, 3]);
-        var s1 = ri(rng, 1, Math.max(1, Math.floor(L.seq / Math.pow(r, 4))));
-        for (i = 0; i < 5; i++) t.push(s1 * Math.pow(r, i));
-      } else if (k === 'ALT') {
-        var d1 = ri(rng, 2, 12) * (rng() < 0.3 ? -1 : 1);
-        var d2 = ri(rng, 2, 12) * (rng() < 0.3 ? -1 : 1);
-        var s2 = ri(rng, 20, Math.max(21, Math.floor(L.seq / 2)));
-        t = [s2, s2 + d1, s2 + d1 + d2, s2 + 2 * d1 + d2, s2 + 2 * d1 + 2 * d2];
-      } else if (k === 'FIB') {
-        var x = ri(rng, 1, level === 'iniciante' ? 8 : 30);
-        var y = ri(rng, 1, level === 'iniciante' ? 10 : 40);
-        t = [x, y, x + y, x + 2 * y, 2 * x + 3 * y];
-      } else {
-        var s3 = ri(rng, 25, Math.max(26, Math.floor(L.seq / 2)));
-        var diff = ri(rng, 2, 15), step = ri(rng, 1, 6) * (rng() < 0.4 ? -1 : 1), cur = s3;
-        for (i = 0; i < 5; i++) { t.push(cur); cur += diff; diff += step; }
-      }
-      var inBounds = t.length === 5 && t.every(function (v) { return Number.isInteger(v) && v >= 0 && v <= L.seq; });
-      var preds = inBounds ? uniquePredictions(t.slice(0, 4)) : [];
-      if (inBounds && preds.length === 1 && preds[0] === t[4]) break;
-    }
-    if (t.length !== 5) { t = [2, 4, 6, 8, 10]; k = 'PA'; }
-    return {
-      type: 'sequencia', title: 'Sequ\u00eAncia', badge: 'PADR\u00c3O',
-      prompt: 'Complete o 5\u00ba termo', rule: RULE_NAMES[k], ruleKey: k,
-      terms: t.slice(0, 4), answer: t[4],
-      display: t.slice(0, 4).join(' \u203a ') + ' \u203a ?',
-      input: '', solved: false, hint: '5 n\u00fameros, 1 padr\u00e3o'
-    };
-  }
-
-  /* ---------- 4. SELE\u00c7\u00c3O / TERMINAIS ---------- */
-  function renderValue(v, rng, level) {
-    var r = rng(), a, b, d;
-    if (level === 'iniciante') {
-      if (r < 0.35 && v > 3) { a = ri(rng, 1, v - 1); return a + ' + ' + (v - a); }
-      return String(v);
-    }
-    if (r < 0.22 && v > 3) { a = ri(rng, 1, v - 1); return a + ' + ' + (v - a); }
-    if (r < 0.40 && v > 4) { b = ri(rng, 2, 9); return (v + b) + ' \u2212 ' + b; }
-    if (r < 0.62) {
-      for (d = 2; d <= 9; d++) if (v % d === 0 && v / d > 1) return (v / d) + ' \u00d7 ' + d;
-    }
-    return String(v);
-  }
-  function isSatisfying(mod, i) {
-    var v = mod.options[i].value, p = mod.params;
-    switch (mod.ruleKey) {
-      case 'multiplo': return v % p.k === 0;
-      case 'par': return v % 2 === 0;
-      case 'impar': return v % 2 === 1;
-      case 'primo': return isPrime(v);
-      case 'divisor': return p.n % v === 0;
-      case 'igual': return v === p.target;
-      case 'maior': return mod.options.every(function (o, j) { return j === i || o.value <= v; });
-      case 'menor': return mod.options.every(function (o, j) { return j === i || o.value >= v; });
-      default: return false;
-    }
-  }
-  function countSatisfying(mod) {
-    var c = 0;
-    for (var i = 0; i < mod.options.length; i++) if (isSatisfying(mod, i)) c++;
-    return c;
-  }
-  var PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
-
-  function genSelecao(rng, level) {
-    var L = LIMITS[level], colors = ['#ffb43a', '#3fe0ff', '#48f0a4', '#ff6ba8'];
-    var kinds = level === 'iniciante' ? ['multiplo', 'par', 'impar', 'maior', 'igual']
-              : level === 'intermediario' ? ['multiplo', 'par', 'impar', 'primo', 'divisor', 'maior', 'menor', 'igual']
-              : ['multiplo', 'par', 'impar', 'primo', 'divisor', 'maior', 'menor', 'igual'];
-    for (var att = 0; att < 120; att++) {
-      var k = pick(rng, kinds);
-      var n = rng() < 0.5 ? 3 : 4;
-      var vals = [], p = {}, text = '', v, guard;
-
-      if (k === 'multiplo') {
-        p.k = level === 'avancado' ? 24 : (level === 'intermediario' ? pick(rng, [6, 8, 9]) : pick(rng, [3, 4, 5, 6]));
-        var target = p.k * ri(rng, 2, Math.max(2, Math.floor(L.opt / p.k)));
-        if (target > L.opt) continue;
-        vals.push(target);
-        guard = 0;
-        while (vals.length < n && guard++ < 300) { v = ri(rng, 2, L.opt); if (v % p.k !== 0 && vals.indexOf(v) < 0) vals.push(v); }
-        text = 'Ative o \u00fanico m\u00faltiplo de ' + p.k;
-      } else if (k === 'par' || k === 'impar') {
-        guard = 0;
-        while (vals.length < n && guard++ < 300) {
-          v = ri(rng, 2, L.opt);
-          if ((v % 2 === (k === 'par' ? 0 : 1)) && vals.indexOf(v) < 0) vals.push(v);
-        }
-        guard = 0;
-        while (vals.length < 1 && guard++ < 50) { v = ri(rng, 2, L.opt); if (v % 2 === (k === 'par' ? 1 : 0)) { vals.unshift(v); break; } }
-        text = k === 'par' ? 'Selecione o \u00fanico n\u00famero PAR' : 'Selecione o \u00fanico n\u00famero \u00cdMPAR';
-      } else if (k === 'primo') {
-        var primes = PRIMES.filter(function (x) { return x <= L.opt; });
-        vals.push(pick(rng, primes));
-        guard = 0;
-        while (vals.length < n && guard++ < 300) { v = ri(rng, 4, L.opt); if (!isPrime(v) && vals.indexOf(v) < 0) vals.push(v); }
-        text = 'Ative o \u00fanico n\u00famero PRIMO';
-      } else if (k === 'divisor') {
-        var div = ri(rng, 2, Math.min(12, L.opt));
-        p.n = div * ri(rng, 3, Math.max(3, Math.floor(L.opt / div)));
-        if (p.n > L.opt || p.n / div !== Math.floor(p.n / div)) continue;
-        vals.push(div);
-        guard = 0;
-        while (vals.length < n && guard++ < 300) {
-          v = ri(rng, 2, L.opt);
-          if (v !== 1 && p.n % v !== 0 && vals.indexOf(v) < 0) vals.push(v);
-        }
-        text = 'Escolha o \u00fanico divisor de ' + p.n;
-      } else if (k === 'igual') {
-        p.target = ri(rng, 2, L.opt); vals.push(p.target);
-        guard = 0;
-        while (vals.length < n && guard++ < 300) { v = ri(rng, 2, L.opt); if (v !== p.target && vals.indexOf(v) < 0) vals.push(v); }
-        text = 'Ative o terminal cujo valor \u00e9 ' + p.target;
-      } else {
-        guard = 0;
-        var wanted = k === 'maior' ? 0 : L.opt;
-        while (vals.length < n && guard++ < 300) {
-          v = ri(rng, 2, L.opt);
-          if (vals.indexOf(v) < 0) vals.push(v);
-        }
-        if (k === 'maior') { wanted = Math.max.apply(null, vals); text = 'Escolha a express\u00e3o de MAIOR valor'; }
-        else { wanted = Math.min.apply(null, vals); text = 'Escolha a express\u00e3o de MENOR valor'; }
-        vals = shuffle(rng, vals);
-        p.wanted = wanted;
-      }
-
-      if (vals.length !== n) continue;
-      var shuffled = shuffle(rng, vals);
-      var options = shuffled.map(function (val, idx) {
-        return { label: String(idx + 1), value: val, text: renderValue(val, rng, level), color: colors[idx] };
-      });
-      var mod = { type: 'selecao', title: 'Corte o circuito', badge: 'TERMINAIS',
-        prompt: text, rule: text, ruleKey: k, params: p, options: options,
-        answerIndex: -1, solved: false, hint: 'Um \u00fanico terminal obedece \u00e0 regra' };
-      var count = countSatisfying(mod);
-      if (count !== 1) continue;
-      for (var i = 0; i < options.length; i++) if (isSatisfying(mod, i)) { mod.answerIndex = i; break; }
-      if (mod.answerIndex >= 0 && options.every(function (o) { return Number.isInteger(o.value) && o.value >= 0 && o.value <= L.opt; })) return mod;
-    }
-    // fallback determin\u00edsico: sempre v\u00e1lido
-    var fb = { type: 'selecao', title: 'Corte o circuito', badge: 'TERMINAIS',
-      prompt: 'Ative o \u00fanico n\u00famero PAR', rule: 'Ative o \u00fanico n\u00famero PAR',
-      ruleKey: 'par', params: {}, options: [
-        { label: 'A', value: 7, text: '7', color: colors[0] },
-        { label: 'B', value: 12, text: '12', color: colors[1] },
-        { label: 'C', value: 9, text: '9', color: colors[2] }
-      ], answerIndex: 1, solved: false, hint: 'Um \u00fanico terminal obedece \u00e0 regra' };
-    return fb;
-  }
-
-  /* ---------- VALIDA\u00c7\u00c3O ---------- */
-  function validate(mod, level) {
-    var errs = [], L = LIMITS[level];
-    if (!mod || !mod.type || !LIMITS[level]) return ['m\u00f3dulo ou n\u00edvel inv\u00e1lido'];
-    if (['operacao', 'termo', 'sequencia'].indexOf(mod.type) >= 0) {
-      if (!Number.isInteger(mod.answer) || mod.answer < 0) errs.push('resposta n\u00e3o inteira ou negativa');
-      var max = mod.type === 'sequencia' ? L.seq : (mod.type === 'termo' ? L.add : L.expr);
-      if (mod.answer > max) errs.push('resposta ' + mod.answer + ' acima do limite ' + max);
-    }
-    if (mod.type === 'operacao' && (!mod.display || mod.display.indexOf('?') < 0)) errs.push('display sem interroga\u00e7\u00e3o');
-    if (mod.type === 'termo' && String(mod.display).indexOf('\u25a1') < 0) errs.push('lacuna ausente');
-    if (mod.type === 'sequencia') {
-      if (!mod.terms || mod.terms.length !== 4) errs.push('sequ\u00eAncia incompleta');
-      else {
-        if (!mod.terms.every(function (v) { return Number.isInteger(v) && v >= 0 && v <= L.seq; })) errs.push('termo fora do limite');
-        var preds = uniquePredictions(mod.terms);
-        if (preds.length !== 1) errs.push('resposta n\u00e3o \u00fanica: [' + preds.join(',') + ']');
-        else if (preds[0] !== mod.answer) errs.push('resposta divergente: ' + preds[0] + ' != ' + mod.answer);
-      }
-    }
-    if (mod.type === 'selecao') {
-      if (!mod.options || mod.options.length < 3 || mod.options.length > 4) errs.push('n\u00famero de op\u00e7\u00f5es inv\u00e1lido');
-      else {
-        var c = countSatisfying(mod);
-        if (c !== 1) errs.push('op\u00e7\u00f5es satisfazentes: ' + c);
-        if (!Number.isInteger(mod.answerIndex) || mod.answerIndex < 0 || mod.answerIndex >= mod.options.length || !isSatisfying(mod, mod.answerIndex)) errs.push('answerIndex inv\u00e1lido');
-        if (!mod.options.every(function (o) { return Number.isInteger(o.value) && o.value >= 0 && o.value <= L.opt; })) errs.push('valor de terminal fora do limite');
-      }
-    }
-    return errs;
-  }
-
-  function generate(type, level, rng) {
-    if (type === 'operacao') return genOperacao(rng, level);
-    if (type === 'termo') return genTermo(rng, level);
-    if (type === 'sequencia') return genSequencia(rng, level);
-    if (type === 'selecao') return genSelecao(rng, level);
-    throw new Error('Tipo desconhecido: ' + type);
-  }
-
+function genEscala(rng,level,recipe){
+  const caps=CAPS[level];
+  const {k,metas}=escolherFator(rng,level,recipe,caps);
+  const porcoes=recipe.porcoes*k;
+  const kLabel = k===0.5?"½":String(k);
   return {
-    LIMITS: LIMITS, hashSeed: hashSeed, rngFrom: rngFrom, ri: ri, pick: pick, shuffle: shuffle,
-    generate: generate, validate: validate, uniquePredictions: uniquePredictions,
-    isSatisfying: isSatisfying, countSatisfying: countSatisfying, isPrime: isPrime
+    titulo:recipe.nome, emoji:recipe.emoji,
+    baseTxt:textoBase(recipe),
+    pedidoTxt:"Prepare para "+porcoes+" pessoas ("+kLabel+"× a receita).",
+    dica:k===0.5?"Metade da receita: divida tudo por 2 — todos os valores são inteiros.":"Multiplique cada ingrediente por "+k+".",
+    ing:recipe.ing.map((i,idx)=>({
+      n:i.n,u:i.u,base:i.q,meta:metas[idx],atual:0,locked:false,passo:passoDe(i.u)
+    })),
+    solucoes:metas.slice(),
+    instrucao:"Ajuste cada recipiente até atingir a quantidade pedida.",
+    equivalencia:null
   };
-})();
-/* ==GEN_END== */
+}
 
-/* ===================================================================
-   MOTOR DO JOGO — interface, áudio, entrada e cronômetro
-   =================================================================== */
-(function () {
-  'use strict';
-
-  var LEVELS = {
-    iniciante:     { count: 4, clock: 120, survival: 45, bonus: 25, penalty: 8,  mult: 1 },
-    intermediario: { count: 5, clock: 90,  survival: 40, bonus: 20, penalty: 12, mult: 2 },
-    avancado:      { count: 6, clock: 75,  survival: 35, bonus: 18, penalty: 18, mult: 3 }
+function genFaltante(rng,level,recipe){
+  const caps=CAPS[level];
+  const {k,metas}=escolherFator(rng,level,recipe,caps);
+  const n=recipe.ing.length;
+  const faltante=ri(rng,0,n-1);
+  const apresentarDado=rng()<0.5 && n>1;
+  let pedidoTxt, dica;
+  if(apresentarDado){
+    const dado=(faltante+1+ri(rng,0,n-2))%n;
+    const Xdado=metas[dado];
+    const fator=metas[faltante]/recipe.ing[faltante].q;
+    pedidoTxt="Mantenha a mesma proporção usando "+fmtInt(Xdado)+" "+unidade(Xdado,recipe.ing[dado].u)+" de "+recipe.ing[dado].n+". Quanto de "+recipe.ing[faltante].n+" é necessário?";
+    dica="Descubra o fator: "+fmtInt(Xdado)+" ÷ "+recipe.ing[dado].q+" = "+fmtDecimal(fator)+".";
+  }else{
+    pedidoTxt="Prepare "+fmtDecimal(k)+"× a receita. Já colocamos todos os ingredientes exceto "+recipe.ing[faltante].n+". Quanto falta?";
+    dica="Multiplique "+recipe.ing[faltante].q+" "+unidade(recipe.ing[faltante].q,recipe.ing[faltante].u)+" por "+fmtDecimal(k)+".";
+  }
+  const ing=recipe.ing.map((i,idx)=>({
+    n:i.n,u:i.u,base:i.q,meta:metas[idx],
+    atual:idx===faltante?0:metas[idx],locked:idx!==faltante,passo:passoDe(i.u)
+  }));
+  return {
+    titulo:recipe.nome, emoji:recipe.emoji,
+    baseTxt:textoBase(recipe),
+    pedidoTxt, dica, ing,
+    faltante, respostaUnidade:recipe.ing[faltante].u,
+    answer:metas[faltante], solucoes:[metas[faltante]],
+    instrucao:"Os ingredientes travados já estão na tigela. Calcule o que falta.",
+    equivalencia:null
   };
-  var TYPE_POOL = ['operacao', 'termo', 'sequencia', 'selecao'];
-  var $ = function (id) { return document.getElementById(id); };
+}
 
-  var S = {
-    level: 'iniciante', mode: 'clock', seed: '',
-    rng: null, modules: [], active: 0, time: 0, errors: 0, solved: 0,
-    score: 0, correct: 0, running: false, ended: false, last: 0, lastTick: 0
+function genComparacao(rng,level,recipe){
+  const caps=CAPS[level];
+  const k=ri(rng,2,level==="chef"?6:5);
+  const corretos=recipe.ing.map(i=>i.q*k);
+  if(!corretos.every(v=>Number.isInteger(v)&&v>0&&v<=caps.geral)){
+    return genComparacao(makeRng((rng()*1e9)>>>0),level,recipe);
+  }
+  const chave=ratioKey(recipe.ing.map(i=>i.q));
+  const nOpcoes=level==="chef"?4:3;
+  const correta=ri(rng,0,nOpcoes-1);
+  const opcoes=[];
+  for(let o=0;o<nOpcoes;o++){
+    if(o===correta){ opcoes.push(corretos.slice()); continue; }
+    let vals, tent=0;
+    do{
+      tent++;
+      vals=corretos.slice();
+      const idx=ri(rng,0,vals.length-1);
+      let delta=ri(rng,1,Math.max(1,Math.min(4,Math.ceil(vals[idx]/3))));
+      if(rng()<0.5) delta=-delta;
+      vals[idx]+=delta;
+    }while(tent<40 && (vals.some(v=>v<=0||v>caps.geral*2) || ratioKey(vals)===chave));
+    opcoes.push(vals);
+  }
+  const quantos=opcoes.filter(v=>ratioKey(v)===chave).length;
+  if(quantos!==1) return genComparacao(makeRng((rng()*1e9)>>>0),level,recipe);
+  return {
+    titulo:recipe.nome, emoji:recipe.emoji,
+    baseTxt:recipe.ing.map(i=>i.q+" "+unidade(i.q,i.u)+" de "+i.n).join(" : "),
+    pedidoTxt:"Qual jarro mantém exatamente a mesma proporção da receita?",
+    dica:"Compare as razões entre os ingredientes (divida todos pelo MDC).",
+    opcoes, correta, ing:recipe.ing.map(i=>({n:i.n,u:i.u,base:i.q})),
+    chaveRatio:chave,
+    instrucao:"Escolha o jarro com a mesma proporção da receita base.",
+    equivalencia:null
   };
+}
 
-  /* ---------- ÁUDIO PROCEDURAL ---------- */
-  var Sound = (function () {
-    var ctx = null, muted = false;
-    function ensure() {
-      if (!ctx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) ctx = new AC(); }
-      if (ctx && ctx.state === 'suspended') ctx.resume();
-      return ctx;
+function genConversao(rng,level,recipe){
+  const caps=CAPS[level];
+  const conv=pick(rng,CONV[level]);
+  const escalar = level==="chef" && rng()<0.55;
+  let fromVal, answer, pedidoTxt, baseTxt, dica, escalaInfo=null;
+  if(escalar){
+    const base=ri(rng,1,3), k=ri(rng,2,4);
+    const totalPequeno=base*k*1000;
+    if(totalPequeno>caps.conv){
+      return genConversao(makeRng((rng()*1e9)>>>0),level,recipe);
     }
-    function tone(freq, dur, type, vol, delay, slide) {
-      if (muted) return;
-      var c = ensure(); if (!c) return;
-      var t = c.currentTime + (delay || 0);
-      var osc = c.createOscillator(), g = c.createGain();
-      osc.type = type || 'sine';
-      osc.frequency.setValueAtTime(freq, t);
-      if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + dur);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(vol, t + 0.008);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      osc.connect(g); g.connect(c.destination);
-      osc.start(t); osc.stop(t + dur + 0.02);
+    pedidoTxt="A receita usa "+base+" kg de "+conv.nome+" para 4 pessoas. Prepare para "+(4*k)+" pessoas e informe o total em gramas.";
+    baseTxt=base+" kg de "+conv.nome+" para 4 pessoas";
+    dica="Multiplique "+base+" kg por "+k+", depois converta: 1 kg = 1.000 g.";
+    fromVal=totalPequeno; answer=totalPequeno;
+    escalaInfo={base,k,porcoes:4*k};
+  }else if(conv.from==="kg"||conv.from==="L"){
+    fromVal = level==="aprendiz" ? ri(rng,1,5)*1000 : ri(rng,1,8)*500;
+    answer=fromVal;
+    pedidoTxt="Converta "+fmtDecimal(fromVal/conv.factor)+" "+conv.from+" de "+conv.nome+" para "+conv.to+".";
+    baseTxt=fmtDecimal(fromVal/conv.factor)+" "+conv.from+" de "+conv.nome;
+    dica="Multiplique por "+fmtInt(conv.factor)+" (de "+conv.from+" para "+conv.to+").";
+  }else if(conv.from==="xícara"){
+    fromVal = level==="aprendiz" ? ri(rng,1,4)*250 : ri(rng,2,8)*125;
+    answer=fromVal;
+    pedidoTxt="Converta "+fmtDecimal(fromVal/conv.factor)+" xícara(s) de "+conv.nome+" para "+conv.to+".";
+    baseTxt=fmtDecimal(fromVal/conv.factor)+" xícara de "+conv.nome;
+    dica="Cada xícara vale 250 mL. Multiplique por 250.";
+  }else{
+    fromVal=ri(rng,1,level==="chef"?9:6)*1000;
+    answer=fromVal/conv.factor;
+    pedidoTxt="Converta "+fmtInt(fromVal)+" "+conv.from+" de "+conv.nome+" para "+conv.to+".";
+    baseTxt=fmtInt(fromVal)+" "+conv.from+" de "+conv.nome;
+    dica="Divida por "+fmtInt(conv.factor)+" (de "+conv.from+" para "+conv.to+").";
+  }
+  const convFinal = escalar ? {from:"kg",to:"g",factor:1000,eq:"1 kg = 1.000 g",nome:conv.nome} : conv;
+  return {
+    titulo:escalar?"Escala + Conversão":"Conversão de Unidades",
+    emoji:escalar?"⚖️":"📐",
+    baseTxt, pedidoTxt, dica,
+    ing:[{n:convFinal.nome,u:convFinal.from,base:fromVal/convFinal.factor,atual:fromVal,locked:true}],
+    respostaUnidade:convFinal.to,
+    answer, solucoes:[answer],
+    conversao:convFinal, fromVal, escalaInfo,
+    instrucao:"Faça a conversão exata e digite o valor na balança.",
+    equivalencia:convFinal.eq
+  };
+}
+
+function generateChallenge(seed,level,type,index){
+  const salt = (TIPO_SALT[type]||1)*1000003 + (NIVEL_SALT[level]||1)*7919;
+  const rng = makeRng(((seed>>>0) + (index>>>0)*2654435761 + salt)>>>0);
+  const recipe = pick(rng,RECEITAS[level]||RECEITAS.aprendiz);
+  let c;
+  if(type==="escala") c=genEscala(rng,level,recipe);
+  else if(type==="faltante") c=genFaltante(rng,level,recipe);
+  else if(type==="comparacao") c=genComparacao(rng,level,recipe);
+  else c=genConversao(rng,level,recipe);
+  c.id=level+"-"+type+"-"+index;
+  c.level=level; c.type=type; c.recipe=recipe; c.seed=seed; c.index=index;
+  return c;
+}
+
+function validateChallenge(c){
+  const errs=[];
+  if(!c) return ["desafio nulo"];
+  const caps=CAPS[c.level];
+  if(!caps) errs.push("nível inválido: "+c.level);
+  if(!TIPO_SALT[c.type]) errs.push("tipo inválido: "+c.type);
+  if(caps){
+    const minIng = c.type==="conversao" ? 1 : caps.ing[0];
+    const maxIng = c.type==="conversao" ? 1 : caps.ing[1];
+    if(!Array.isArray(c.ing) || c.ing.length<minIng || c.ing.length>maxIng){
+      errs.push("nº de ingredientes fora do limite: "+(c.ing?c.ing.length:"?"));
     }
-    return {
-      key:    function () { tone(640, .045, 'square', .045); },
-      click:  function () { tone(880, .05, 'triangle', .05); },
-      unlock: function () { tone(420, .09, 'triangle', .075); tone(630, .12, 'triangle', .07, .07); tone(950, .18, 'sine', .065, .15); },
-      error:  function () { tone(150, .3, 'sawtooth', .11, 0, 80); tone(105, .32, 'square', .05, .02); },
-      tick:   function (last) { tone(last ? 1250 : 900, .05, 'square', last ? .055 : .035); },
-      victory: function () { [523, 659, 784, 1047, 1319, 1568].forEach(function (f, i) { tone(f, .32, 'triangle', .075, i * .11); tone(f * 2, .18, 'sine', .025, i * .11); }); },
-      defeat:  function () { [330, 262, 196, 147, 98].forEach(function (f, i) { tone(f, .4, 'sawtooth', .075, i * .15); }); },
-      toggle: function () { muted = !muted; if (!muted) tone(700, .08, 'sine', .06); return muted; },
-      isMuted: function () { return muted; },
-      wake: ensure
-    };
-  })();
-
-  function fmt(t) {
-    t = Math.max(0, t);
-    var m = Math.floor(t / 60), s = Math.floor(t % 60), d = Math.floor((t % 1) * 10);
-    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + d;
+    for(const i of (c.ing||[])){
+      if(!(i.base>0)) errs.push("base inválida: "+JSON.stringify(i));
+      if(c.type!=="conversao" && !Number.isInteger(i.base)) errs.push("base não inteira: "+JSON.stringify(i));
+      if(i.meta!==undefined && (!(i.meta>0) || !Number.isInteger(i.meta))) errs.push("meta inválida");
+    }
   }
-  function randSeed() {
-    return Math.random().toString(36).slice(2, 8).toUpperCase() + '-' + Math.floor(Math.random() * 900 + 100);
-  }
-
-  /* ---------- CONSTRUÇÃO DOS MÓDULOS ---------- */
-  function buildModules() {
-    var cfg = LEVELS[S.level], rng = S.rng;
-    var types = TYPE_POOL.slice();
-    while (types.length < cfg.count) types.push(CofreGen.pick(rng, TYPE_POOL));
-    types = CofreGen.shuffle(rng, types);
-    S.modules = types.map(function (t, i) {
-      var m = CofreGen.generate(t, S.level, rng);
-      var problems = CofreGen.validate(m, S.level);
-      if (problems.length) throw new Error('Módulo inválido: ' + problems.join('; '));
-      m.index = i;
-      return m;
-    });
-  }
-
-  function renderModules() {
-    var wrap = $('modules');
-    wrap.className = 'modules ' + (S.modules.length === 4 ? 'cols-2' : S.modules.length === 5 ? 'cols-5' : 'cols-3');
-    wrap.innerHTML = '';
-    S.modules.forEach(function (m, i) {
-      var card = document.createElement('div');
-      card.className = 'mod ' + m.type + (S.modules.length === 5 && i >= 3 ? ' wide' : '');
-      card.dataset.index = String(i);
-      card.dataset.testid = 'module-' + i;
-
-      var head = document.createElement('div');
-      head.className = 'mod-head';
-      head.innerHTML = '<span class="mod-id">MÓDULO ' + String(i + 1).padStart(2, '0') + '</span>' +
-                       '<span class="mod-badge">' + m.badge + '</span>' +
-                       '<span class="mod-state">PRONTO</span>';
-      card.appendChild(head);
-
-      var prompt = document.createElement('div');
-      prompt.className = 'mod-prompt';
-      prompt.textContent = m.prompt;
-      card.appendChild(prompt);
-
-      var disp = document.createElement('div');
-      disp.className = 'leddisplay';
-      var val = document.createElement('div');
-      val.className = 'ledvalue';
-      val.textContent = m.display;
-      disp.appendChild(val);
-      card.appendChild(disp);
-
-      if (m.type === 'selecao') {
-        var terms = document.createElement('div');
-        terms.className = 'terminals';
-        m.options.forEach(function (o, oi) {
-          var b = document.createElement('button');
-          b.className = 'terminal';
-          b.style.setProperty('--tc', o.color);
-          b.dataset.opt = String(oi);
-          b.dataset.testid = 'module-' + i + '-opt-' + oi;
-          b.innerHTML = '<span class="tletter">' + o.label + '</span><span>' + o.text + '</span>';
-          b.addEventListener('click', function (e) { e.stopPropagation(); focusModule(i); pickTerminal(oi); });
-          terms.appendChild(b);
-        });
-        card.appendChild(terms);
-      } else {
-        var chip2 = document.createElement('div');
-        chip2.className = 'rule-chip';
-        chip2.textContent = (m.rule ? 'REGRA · ' + m.rule + ' · ' : '') + m.hint;
-        card.appendChild(chip2);
-        var ent = document.createElement('div');
-        ent.className = 'entry';
-        ent.innerHTML = '<span class="etext"></span><span class="caret"></span>';
-        card.appendChild(ent);
+  if(c.type==="comparacao"){
+    if(!Array.isArray(c.opcoes) || c.opcoes.length<3 || c.opcoes.length>4) errs.push("nº de opções inválido");
+    else{
+      let cont=0;
+      for(const o of c.opcoes){
+        if(o.some(v=>!Number.isInteger(v)||v<=0)) errs.push("opção com valor inválido: "+o.join(","));
+        if(ratioKey(o)===ratioKey(c.ing.map(i=>i.base))) cont++;
       }
-
-      var foot = document.createElement('div');
-      foot.className = 'mod-foot';
-      foot.innerHTML = '<span>' + (m.type === 'selecao' ? 'TECLA 1-' + m.options.length + ' + ENTER' : '0-9 / ⌫ / ENTER') + '</span><span>' + m.title + '</span>';
-      card.appendChild(foot);
-
-      card.addEventListener('click', function () { focusModule(i); });
-      m.el = card;
-      wrap.appendChild(card);
-    });
-    updateSegments();
-  }
-
-  function updateSegments() {
-    var box = $('segments');
-    box.innerHTML = '';
-    for (var i = 0; i < S.modules.length; i++) {
-      var s = document.createElement('div');
-      s.className = 'seg' + (S.modules[i].solved ? ' on' : '');
-      box.appendChild(s);
+      if(cont!==1) errs.push("nº de opções corretas = "+cont);
     }
-    var pct = Math.round(S.solved / S.modules.length * 100);
-    $('doorPct').textContent = pct + '%';
-    $('progressText').textContent = S.solved + ' / ' + S.modules.length + ' DESBLOQUEADOS';
-  }
-
-  function updateLeds() {
-    var box = $('leds'); box.innerHTML = '';
-    for (var i = 0; i < 3; i++) {
-      var d = document.createElement('div');
-      d.className = 'led' + (i < S.errors ? ' on' : '');
-      box.appendChild(d);
-    }
-    var fc = $('failCount');
-    fc.textContent = S.errors + '/3';
-    fc.classList.toggle('danger', S.errors >= 2);
-  }
-
-  function focusModule(i) {
-    if (!S.running || i < 0 || i >= S.modules.length || S.modules[i].solved) return;
-    S.active = i;
-    S.modules.forEach(function (m, j) {
-      m.el.classList.toggle('active', j === i);
-      if (!m.solved) m.el.querySelector('.mod-state').textContent = j === i ? 'ATIVO' : 'PRONTO';
+    if(!Number.isInteger(c.correta)||c.correta<0||c.correta>=c.opcoes.length) errs.push("índice correto inválido");
+  }else if(c.type==="escala"){
+    if(!Array.isArray(c.solucoes) || c.solucoes.length!==c.ing.length) errs.push("solucoes não casa com ingredientes");
+    else c.solucoes.forEach((v,i)=>{
+      if(!Number.isInteger(v)||v<=0) errs.push("solução não inteira positiva em "+i+": "+v);
+      if(caps && v>caps.geral) errs.push("solução acima do limite em "+i+": "+v);
     });
-    updateEntry();
-    Sound.click();
+    c.ing.forEach((ing,i)=>{ if(ing.meta!==c.solucoes[i]) errs.push("meta ≠ solução em "+i); });
+  }else{
+    if(!Number.isInteger(c.answer)||c.answer<=0) errs.push("resposta não inteira positiva: "+c.answer);
+    if(caps && c.type==="conversao" && c.answer>caps.conv) errs.push("resposta de conversão acima do limite");
+    if(caps && c.type!=="conversao" && c.answer>caps.geral) errs.push("resposta acima do limite");
+    if(!c.respostaUnidade) errs.push("unidade de resposta ausente");
   }
-  function nextUnsolved(from) {
-    for (var k = 1; k <= S.modules.length; k++) {
-      var i = (from + k) % S.modules.length;
-      if (!S.modules[i].solved) return i;
+  if(!c.titulo||!c.baseTxt||!c.pedidoTxt) errs.push("textos da comanda incompletos");
+  return errs;
+}
+// ==GEN_END==
+
+/* ==================== ÁUDIO PROCEDURAL ==================== */
+let actx=null, muted=false;
+function audio(){
+  if(!actx){
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC) actx=new AC();
+  }
+  if(actx&&actx.state==="suspended") actx.resume();
+  return actx;
+}
+function beep(freq,dur,type,vol,delay){
+  if(muted) return;
+  const ac=audio(); if(!ac) return;
+  const t=ac.currentTime+(delay||0);
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type||"sine"; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol||0.07,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(ac.destination);
+  o.start(t); o.stop(t+dur+0.02);
+}
+function somClick(){ beep(660,0.06,"sine",0.045); }
+function somLiquido(){
+  if(muted) return;
+  const ac=audio(); if(!ac) return;
+  const dur=0.17, buf=ac.createBuffer(1,Math.floor(ac.sampleRate*dur),ac.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+  const src=ac.createBufferSource(); src.buffer=buf;
+  const f=ac.createBiquadFilter(); f.type="bandpass"; f.frequency.value=780+Math.random()*500; f.Q.value=1.4;
+  const g=ac.createGain(); g.gain.setValueAtTime(0.10,ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+dur);
+  src.connect(f).connect(g).connect(ac.destination); src.start();
+}
+function somSucesso(){ [523,659,784,1047].forEach((f,i)=>beep(f,0.22,"sine",0.075,i*0.075)); }
+function somErro(){ beep(240,0.22,"sawtooth",0.06); beep(160,0.30,"sawtooth",0.05,0.13); }
+function somAlerta(){ beep(880,0.10,"square",0.05); beep(880,0.10,"square",0.05,0.17); }
+function somFim(){ [392,523,659,523].forEach((f,i)=>beep(f,0.3,"triangle",0.06,i*0.14)); }
+
+/* ==================== ESTADO ==================== */
+const TIPOS=["escala","faltante","comparacao","conversao"];
+const METAS={aprendiz:8,sous:10,chef:12};
+const VIDAS={aprendiz:4,sous:3,chef:3};
+const PENALIDADE={aprendiz:5,sous:8,chef:12};
+const TEMPO_ORDEM={aprendiz:30,sous:25,chef:21};
+const NOMES_NIVEL={aprendiz:"Aprendiz",sous:"Sous-Chef",chef:"Chef"};
+const CORES=["#ef9a3d","#4fa9bd","#d76f96"];
+
+const S={
+  tela:"telaInicial", nivel:"aprendiz", modo:"cronometrado", seed:0,
+  index:0, entregues:0, combo:0, maxCombo:0, score:0, vidas:3,
+  restante:120, tempoTotal:120, ordemRestante:0, tempoExtra:0,
+  challenge:null, valores:[], resposta:"", selected:-1, ativo:0,
+  erros:0, acertos:0, decorrido:0, transicao:false, alertado:false,
+  raf:null, last:0, fimMotivo:""
+};
+
+const $=id=>document.getElementById(id);
+function novoSeed(){ return 100000+Math.floor(Math.random()*900000); }
+
+function mostrarTela(id){
+  S.tela=id;
+  document.querySelectorAll(".tela").forEach(t=>t.classList.toggle("ativa",t.id===id));
+}
+
+/* ==================== RENDERIZAÇÃO ==================== */
+function bowlSVG(i,cor){
+  const clip="clipBowl"+i;
+  return '<svg viewBox="0 0 120 96" aria-hidden="true">'+
+    '<defs><clipPath id="'+clip+'"><path d="M14 30 Q14 84 60 84 Q106 84 106 30 Z"/></clipPath></defs>'+
+    '<ellipse cx="60" cy="88" rx="34" ry="5" fill="rgba(70,30,10,.18)"/>'+
+    '<path d="M10 26 Q10 88 60 88 Q110 88 110 26 Z" fill="#fdfaf2" stroke="#a5744b" stroke-width="2.5"/>'+
+    '<g clip-path="url(#'+clip+')">'+
+      '<rect id="liq'+i+'" x="0" y="84" width="120" height="0" fill="'+cor+'"/>'+
+      '<path id="onda'+i+'" d="" fill="rgba(255,255,255,.28)"/>'+
+    '</g>'+
+    '<path d="M14 30 Q14 84 60 84 Q106 84 106 30" fill="none" stroke="#8a5a34" stroke-width="1.4" opacity=".6"/>'+
+    '<ellipse cx="60" cy="27" rx="50" ry="8" fill="#fffaf0" stroke="#a5744b" stroke-width="2.5"/>'+
+    '<ellipse cx="60" cy="27" rx="43" ry="5" fill="#ead9be"/>'+
+    '</svg>';
+}
+function atualizarBowl(i,valor,maximo){
+  const r=$("liq"+i); if(!r) return;
+  const pct=maximo>0?Math.max(0,Math.min(1,valor/maximo)):0;
+  const h=pct*54, y=84-h;
+  r.setAttribute("y",y.toFixed(2)); r.setAttribute("height",h.toFixed(2));
+  const w=$("onda"+i);
+  if(w) w.setAttribute("d", h>2 ? "M0 "+y.toFixed(2)+" Q30 "+(y-3).toFixed(2)+" 60 "+y.toFixed(2)+" Q90 "+(y+3).toFixed(2)+" 120 "+y.toFixed(2)+" L120 "+(y+5).toFixed(2)+" L0 "+(y+5).toFixed(2)+" Z" : "");
+}
+
+function renderTicket(){
+  const c=S.challenge;
+  $("ticketCorpo").innerHTML=
+    '<div class="ticket-topo"><span class="pill">COMANDA #'+(S.index+1)+'</span><span class="prato-emoji">'+c.emoji+'</span></div>'+
+    '<h2>'+c.titulo+'</h2>'+
+    '<div class="secao"><span class="lbl">📖 Receita de referência</span><p>'+c.baseTxt+'</p></div>'+
+    '<div class="secao destaque"><span class="lbl">🧾 Pedido do cliente</span><p>'+c.pedidoTxt+'</p></div>'+
+    (c.equivalencia?'<div class="equivalencia">📐 '+c.equivalencia+'</div>':'')+
+    '<div class="dica-ticket">💡 '+c.dica+'</div>';
+}
+
+function controlesHTML(i,passo){
+  return '<div class="controles">'+
+    '<button data-i="'+i+'" data-d="'+(-5*passo)+'">−'+fmtInt(5*passo)+'</button>'+
+    '<button data-i="'+i+'" data-d="'+(-passo)+'">−'+fmtInt(passo)+'</button>'+
+    '<button data-i="'+i+'" data-d="'+passo+'">+'+fmtInt(passo)+'</button>'+
+    '<button data-i="'+i+'" data-d="'+(5*passo)+'">+'+fmtInt(5*passo)+'</button>'+
+    '</div>';
+}
+function bowlCard(ing,i){
+  const max=Math.max(ing.meta||ing.base,ing.atual||0,1)*1.15;
+  return '<div class="recipiente'+(ing.locked?' bloqueado':'')+(ing.faltando?' faltando':'')+'" id="rec'+i+'">'+
+    bowlSVG(i,CORES[i%3])+
+    '<div class="nome">'+ing.n+'</div>'+
+    '<div class="medida"><span id="val'+i+'">'+fmtInt(ing.atual||0)+'</span> <small>'+unidade(ing.atual||0,ing.u)+'</small></div>'+
+    (ing.locked?'<div class="meta">✔ já adicionado</div>':ing.faltando?'<div class="meta">✏️ calcular</div>':'')+
+    (ing.locked?'':controlesHTML(i,ing.passo||1))+
+    '</div>';
+}
+
+function valorRecebidoTexto(c){
+  const conv=c.conversao;
+  if(c.escalaInfo) return fmtInt(c.fromVal/conv.factor)+" kg";
+  if(conv.from==="g"||conv.from==="mL") return fmtInt(c.fromVal)+" "+conv.from;
+  return fmtDecimal(c.fromVal/conv.factor)+" "+conv.from;
+}
+function renderDesafio(){
+  const c=S.challenge;
+  $("instrucaoBancada").textContent=c.instrucao;
+  $("btnLimpar").textContent=LIMPAR_LABEL[c.type]||"🧹 Limpar Bancada";
+  const area=$("areaDesafio");
+  if(c.type==="escala"||c.type==="faltante"){
+    const ings=c.ing.map((ig,i)=>Object.assign({},ig,{
+      atual:i===c.faltante?0:S.valores[i],
+      faltando:i===c.faltante
+    }));
+    if(c.type==="faltante"){
+      area.innerHTML='<div class="aviso-falta">🔎 Falta calcular: <strong>'+c.ing[c.faltante].n+'</strong></div>'+
+        '<div class="ingredientes">'+ings.map(bowlCard).join("")+'</div>'+
+        '<div class="resposta-box"><label>Quanto de '+c.ing[c.faltante].n+'?</label>'+
+        '<input id="inpResp" inputmode="numeric" autocomplete="off" placeholder="0" value="'+S.resposta+'">'+
+        '<span class="unidade">'+unidade(c.answer,c.respostaUnidade)+'</span>'+
+        '<div class="tecla-dica">Digite o valor e pressione <kbd>Enter</kbd> para servir · <kbd>Backspace</kbd> limpa</div></div>';
+      const inp=$("inpResp");
+      inp.addEventListener("input",()=>{ S.resposta=inp.value.replace(/[^0-9]/g,""); inp.value=S.resposta; S.ativo=c.faltante; atualizarBowl(c.faltante,Number(S.resposta||0),c.answer*1.15); atualizarPainel(); });
+      inp.focus();
+    }else{
+      area.innerHTML='<div class="ingredientes">'+ings.map(bowlCard).join("")+'</div>';
     }
-    return -1;
+    ings.forEach((ig,i)=>atualizarBowl(i,ig.atual||0,Math.max(ig.meta,1)*1.15));
+  }else if(c.type==="comparacao"){
+    const letras=["A","B","C","D"];
+    area.innerHTML='<div class="jarras">'+c.opcoes.map((vals,oi)=>{
+      const total=vals.reduce((a,b)=>a+b,0);
+      return '<button class="jarra'+(S.selected===oi?" selecionada":"")+'" data-op="'+oi+'" id="jarra'+oi+'">'+
+        '<div class="jarro-nome"><span class="tecla-jarro">'+(oi+1)+'</span>Jarro '+letras[oi]+'</div>'+
+        '<div class="jarra-vidro">'+vals.map((v,ii)=>'<div class="camada" style="height:'+(v/total*100).toFixed(2)+'%;background:'+CORES[ii%3]+'">'+fmtInt(v)+'</div>').join("")+'</div>'+
+        '<div class="valores">'+vals.map((v,ii)=>c.ing[ii].n+": "+fmtInt(v)).join("<br>")+'</div>'+
+        '</button>';
+    }).join("")+'</div>'+
+    '<div class="resposta-box" style="max-width:560px"><label>Jarro escolhido:</label><strong id="jarroEscolhido" style="font-size:18px;color:#c65b39">'+(S.selected<0?"— nenhum —":"Jarro "+letras[S.selected])+'</strong>'+
+    '<div class="tecla-dica">Clique em um jarro ou use as teclas <kbd>1</kbd>–<kbd>'+c.opcoes.length+'</kbd> e <kbd>Enter</kbd></div></div>';
+  }else{
+    const conv=c.conversao;
+    const fromLabel=valorRecebidoTexto(c);
+    area.innerHTML='<div class="conversao-cena">'+
+      '<svg class="balanca" viewBox="0 0 320 170">'+
+        '<rect x="148" y="70" width="24" height="80" rx="6" fill="#8a5a34"/>'+
+        '<path d="M160 78 L160 34" stroke="#8a5a34" stroke-width="9" stroke-linecap="round"/>'+
+        '<circle cx="160" cy="34" r="10" fill="#f2b440" stroke="#b37c17" stroke-width="3"/>'+
+        '<path d="M40 40 L280 40" stroke="#8a5a34" stroke-width="7" stroke-linecap="round"/>'+
+        '<circle cx="160" cy="40" r="6" fill="#c65b39"/>'+
+        '<path d="M40 40 L40 62 M40 62 Q70 92 100 62 M280 40 L280 62 M280 62 Q250 92 220 62" fill="none" stroke="#a5744b" stroke-width="3"/>'+
+        '<text x="70" y="80" text-anchor="middle" class="prato-txt">'+fromLabel+'</text>'+
+        '<text x="70" y="95" text-anchor="middle" class="prato-sub">recebido</text>'+
+        '<text x="250" y="80" text-anchor="middle" class="prato-txt" id="txtBalanca">'+(S.resposta?fmtInt(Number(S.resposta)):"?")+" "+conv.to+'</text>'+
+        '<text x="250" y="95" text-anchor="middle" class="prato-sub">para servir</text>'+
+        '<rect x="112" y="148" width="96" height="9" rx="4" fill="#8a5a34"/>'+
+      '</svg>'+
+      '<div class="equiv-grande">📐 '+conv.eq+'</div>'+
+      '<div class="resposta-box"><label>Valor em '+conv.to+':</label>'+
+      '<input id="inpResp" inputmode="numeric" autocomplete="off" placeholder="0" value="'+S.resposta+'">'+
+      '<span class="unidade">'+conv.to+'</span>'+
+      '<div class="tecla-dica">Digite o número exato e pressione <kbd>Enter</kbd></div></div>'+
+      '</div>';
+    const inp=$("inpResp");
+    inp.addEventListener("input",()=>{
+      S.resposta=inp.value.replace(/[^0-9]/g,""); inp.value=S.resposta;
+      $("txtBalanca").textContent=(S.resposta?fmtInt(Number(S.resposta)):"?")+" "+conv.to;
+      atualizarPainel();
+    });
+    inp.focus();
   }
-  function updateEntry() {
-    var m = S.modules[S.active];
-    var txt = $('entryText');
-    if (!m || m.solved) { txt.textContent = '—'; return; }
-    if (m.type === 'selecao') {
-      txt.textContent = m.pending != null ? m.options[m.pending].label + ' · ' + m.options[m.pending].text : 'ESCOLHA O TERMINAL';
-      txt.style.fontSize = m.pending != null ? '18px' : '12px';
-      return;
+  atualizarPainel();
+}
+
+function atualizarBotoes(){
+  let pronto=false;
+  if(S.challenge){
+    if(S.challenge.type==="escala") pronto=S.valores.every((v,i)=>v===S.challenge.ing[i].meta);
+    else if(S.challenge.type==="faltante"||S.challenge.type==="conversao") pronto=Number(S.resposta)>0 && Number.isInteger(Number(S.resposta));
+    else pronto=S.selected>=0;
+  }
+  $("btnServir").classList.toggle("incompleto",!pronto);
+  const estado=$("estadoBancada");
+  if(S.transicao) estado.textContent="Entregando…";
+  else if(pronto) estado.textContent="✔️ Pronto para servir!";
+  else if(S.challenge&&S.challenge.type==="escala") estado.textContent="Ajustando ingredientes…";
+  else estado.textContent="Aguardando sua resposta…";
+}
+
+function atualizarPainel(){
+  const c=S.challenge; if(!c) return;
+  if(c.type==="comparacao"){
+    const s=c.opcoes[S.selected];
+    $("linhasProporcao").innerHTML=s
+      ? s.map((v,i)=>'<div class="linha-prop"><span>'+c.ing[i].n+'</span><b>'+fmtInt(v)+' '+c.ing[i].u+'</b></div>').join("")
+      : '<div class="linha-prop">Nenhum jarro selecionado</div>';
+    $("razãoAtual").innerHTML="Razão do jarro <b>"+(s?ratioKey(s):"—")+"</b>";
+  }else if(c.type==="conversao"){
+    $("linhasProporcao").innerHTML='<div class="linha-prop"><span>Recebido</span><b>'+valorRecebidoTexto(c)+'</b></div>'+
+      '<div class="linha-prop"><span>Resposta</span><b>'+(S.resposta!==""?fmtInt(Number(S.resposta)):"0")+' '+c.conversao.to+'</b></div>';
+    $("razãoAtual").innerHTML="Equivalência<br><b>"+c.conversao.eq+"</b>";
+  }else{
+    $("linhasProporcao").innerHTML=c.ing.map((ig,i)=>{
+      const v=(i===c.faltante?Number(S.resposta||0):S.valores[i]);
+      return '<div class="linha-prop"><span>'+ig.n+'</span><b>'+fmtInt(v)+' '+unidade(v,ig.u)+'</b></div>';
+    }).join("");
+    const vals=c.ing.map((ig,i)=>i===c.faltante?Number(S.resposta||0):S.valores[i]);
+    const mostrados=vals.map(v=>v>0?fmtInt(v):"?").join(" : ");
+    $("razãoAtual").innerHTML="Na bancada <b>"+mostrados+"</b><br>"+
+      (vals.every(v=>v>0)?"<small>razão simplificada: "+ratioKey(vals)+"</small>":"<small>preencha os valores para ver a razão</small>");
+  }
+  $("hudPontos").textContent=fmtInt(S.score);
+  $("hudEntregues").textContent=S.entregues+" / "+METAS[S.nivel];
+  $("hudCombo").textContent="×"+S.combo;
+  $("hudVidas").textContent="★".repeat(S.vidas)+"☆".repeat(Math.max(0,VIDAS[S.nivel]-S.vidas));
+  $("metaTexto").textContent="Meta: "+METAS[S.nivel]+" pedidos";
+  atualizarBotoes();
+}
+
+function textoAlerta(){
+  const c=S.challenge;
+  if(!c) return "⚠️ TEMPO ACABANDO";
+  if(c.type==="escala"){
+    const idx=c.ing.map((ig,k)=>k).filter(k=>S.valores[k]<c.ing[k].meta);
+    if(idx.length){
+      const partes=idx.slice(0,2).map(k=>{
+        const falta=c.ing[k].meta-S.valores[k];
+        return fmtInt(falta)+" "+unidade(falta,c.ing[k].u)+" de "+c.ing[k].n;
+      });
+      return "⚠️ Faltam "+partes.join(" e ")+(idx.length>2?" e mais ingredientes":"");
     }
-    txt.style.fontSize = '';
-    txt.textContent = m.input.length ? m.input : '—';
-    var et = m.el.querySelector('.etext');
-    if (et) et.textContent = m.input;
+    return "⚠️ Confira a bancada e sirva!";
   }
+  if(c.type==="faltante") return "⚠️ Calcule: "+c.ing[c.faltante].n;
+  if(c.type==="conversao") return "⚠️ Converta para "+c.conversao.to;
+  return "⚠️ Escolha o jarro certo";
+}
+function atualizarHUD(){
+  const cron=S.modo==="cronometrado";
+  const total=cron?S.tempoTotal:Math.max(1,TEMPO_ORDEM[S.nivel]+S.tempoExtra);
+  const rest=cron?S.restante:S.ordemRestante;
+  const seg=Math.max(0,Math.ceil(rest));
+  $("hudTempo").textContent=cron?(Math.floor(seg/60)+":"+String(seg%60).padStart(2,"0")):(seg+" s");
+  $("hudTempoLbl").textContent=cron?"⏰ Tempo restante":"⏱️ Tempo do pedido";
+  $("hudTempo").classList.toggle("critical",rest<=Math.max(8,total*0.2));
+  const pct=Math.max(0,Math.min(1,rest/total));
+  $("barraTempoFill").style.width=(pct*100).toFixed(1)+"%";
+  $("barraTempo").classList.toggle("perigo",pct<=0.25);
+  $("seloAlerta").classList.toggle("visivel",pct<=0.2);
+  if(pct<=0.2) $("seloAlerta").textContent=textoAlerta();
+  if(pct<=0.2 && !S.alertado && rest>0){ S.alertado=true; somAlerta(); }
+  if(pct>0.3) S.alertado=false;
+}
 
-  /* ---------- INTERAÇÃO ---------- */
-  function typeDigit(d) {
-    if (!S.running) return;
-    var m = S.modules[S.active];
-    if (!m || m.solved) return;
-    if (m.type === 'selecao') {
-      var idx = parseInt(d, 10) - 1;
-      if (idx >= 0 && idx < m.options.length) { m.pending = idx; updateEntry(); paintTerminals(); Sound.key(); }
-      return;
+/* ==================== FEEDBACK ==================== */
+function feedback(ok,titulo,texto){
+  const div=document.createElement("div");
+  div.className="feedback"+(ok?"":" erro");
+  div.innerHTML='<div class="fb-titulo">'+(ok?"🎉 ":"⚠️ ")+titulo+'</div><div class="fb-texto">'+texto+'</div>';
+  $("feedSlot").appendChild(div);
+  setTimeout(()=>div.remove(),1000);
+}
+
+/* ==================== LÓGICA DO JOGO ==================== */
+function proximoPedido(){
+  if(S.entregues>=METAS[S.nivel] && S.modo==="cronometrado"){ fim("Meta de reputação alcançada!"); return; }
+  const tipo=TIPOS[S.index%TIPOS.length];
+  S.challenge=generateChallenge(S.seed,S.nivel,tipo,S.index);
+  S.valores=S.challenge.ing.map(ig=>0);
+  if(S.challenge.type==="faltante"){
+    S.challenge.ing.forEach((ig,i)=>{ if(ig.locked) S.valores[i]=ig.meta; });
+  }
+  S.resposta=""; S.selected=-1; S.ativo=0; S.transicao=false; S.alertado=false;
+  S.ordemRestante=Math.min(TEMPO_ORDEM[S.nivel]+S.tempoExtra, TEMPO_ORDEM[S.nivel]+10);
+  S.feedSlot=$("feedSlot"); $("feedSlot").innerHTML="";
+  renderTicket(); renderDesafio(); atualizarHUD();
+}
+
+function iniciarPartida(seed){
+  S.seed=seed>>>0;
+  S.index=0; S.entregues=0; S.combo=0; S.maxCombo=0; S.score=0;
+  S.vidas=VIDAS[S.nivel]; S.restante=S.tempoTotal=120;
+  S.tempoExtra=0; S.erros=0; S.acertos=0; S.decorrido=0;
+  S.transicao=false; S.alertado=false;
+  $("hudSemente").textContent=String(S.seed);
+  $("btnMudo").textContent=muted?"🔇 Sem som":"🔊 Som";
+  mostrarTela("telaJogo");
+  audio(); beep(523,0.1,"sine",0.05); beep(784,0.14,"sine",0.05,0.1);
+  proximoPedido();
+}
+
+function resolver(acertou,porTempo){
+  if(S.transicao) return;
+  S.transicao=true;
+  const c=S.challenge;
+  if(acertou){
+    S.acertos++; S.entregues++; S.combo++; S.maxCombo=Math.max(S.maxCombo,S.combo);
+    const ganho=100+S.combo*25; S.score+=ganho;
+    if(S.modo==="continuo") S.tempoExtra=Math.min(10,S.tempoExtra+2);
+    else S.restante=Math.min(S.tempoTotal,S.restante+3);
+    somSucesso();
+    feedback(true,"Pedido entregue!","+"+ganho+" pontos"+(S.combo>1?" · combo ×"+S.combo:"")+".");
+  }else{
+    S.erros++; S.combo=0; S.vidas--; S.score=Math.max(0,S.score-50);
+    if(S.modo==="cronometrado") S.restante=Math.max(0,S.restante-PENALIDADE[S.nivel]);
+    somErro();
+    let certo="";
+    if(c.type==="comparacao") certo="O correto era o Jarro "+["A","B","C","D"][c.correta]+".";
+    else if(c.type==="escala") certo="O correto: "+c.ing.map((ig,i)=>fmtInt(c.solucoes[i])+" "+unidade(c.solucoes[i],ig.u)).join(", ")+".";
+    else certo="A resposta era "+fmtInt(c.answer)+" "+c.respostaUnidade+".";
+    feedback(false,porTempo?"Pedido queimou!":"Pedido errado!",certo+(S.modo==="cronometrado"?" −"+PENALIDADE[S.nivel]+" s.":""));
+  }
+  atualizarPainel();
+  if(S.vidas<=0){ setTimeout(()=>fim(porTempo?"O cliente foi embora!":"Sem reputação para continuar."),950); return; }
+  if(S.modo==="cronometrado" && S.restante<=0){ setTimeout(()=>fim("Tempo esgotado!"),950); return; }
+  if(S.modo==="cronometrado" && S.entregues>=METAS[S.nivel]){ setTimeout(()=>fim("Meta de reputação alcançada!"),950); return; }
+  setTimeout(()=>{ S.index++; proximoPedido(); },950);
+}
+
+function avaliar(){
+  if(!S.challenge||S.transicao) return;
+  const c=S.challenge;
+  let ok=false;
+  if(c.type==="escala") ok=c.ing.every((ig,i)=>S.valores[i]===ig.meta);
+  else if(c.type==="comparacao") ok=S.selected===c.correta;
+  else ok=Number(S.resposta)===c.answer && S.resposta!=="";
+  resolver(ok,false);
+}
+
+function limpar(){
+  if(!S.challenge||S.transicao) return;
+  S.valores=S.challenge.ing.map(()=>0);
+  S.resposta=""; S.selected=-1;
+  somClick(); renderDesafio();
+}
+
+function fim(motivo){
+  if(S.tela!=="telaJogo") return;
+  S.fimMotivo=motivo;
+  const vitoria=S.entregues>=METAS[S.nivel] || S.vidas>0 && motivo.indexOf("Meta")>=0;
+  $("fimEmoji").textContent=vitoria?"🏆":"🧾";
+  $("fimTitulo").textContent=vitoria?"Serviço de Excelência!":"Turno Encerrado";
+  $("fimMotivo").textContent=motivo;
+  $("fimEntregues").textContent=S.entregues;
+  $("fimTaxa").textContent=(S.acertos+S.erros?Math.round(S.acertos/(S.acertos+S.erros)*100):0)+"%";
+  $("fimCombo").textContent=S.maxCombo;
+  $("fimPontos").textContent=fmtInt(S.score);
+  const cronFinal=S.modo==="cronometrado";
+  const secsFinal=Math.max(0,Math.ceil(cronFinal?S.restante:S.decorrido));
+  $("fimTempoLbl").textContent=cronFinal?"Tempo restante":"Tempo na cozinha";
+  $("fimTempo").textContent=Math.floor(secsFinal/60)+":"+String(secsFinal%60).padStart(2,"0");
+  $("fimErros").textContent=S.erros;
+  $("fimSemente").textContent=String(S.seed);
+  $("fimNivel").textContent=NOMES_NIVEL[S.nivel]+" · "+(S.modo==="cronometrado"?"Turno Cronometrado":"Serviço Contínuo");
+  somFim();
+  mostrarTela("telaFim");
+}
+
+/* ==================== LOOP ==================== */
+function loop(ts){
+  if(!S.last) S.last=ts;
+  const dt=Math.min(0.1,(ts-S.last)/1000); S.last=ts;
+  if(S.tela==="telaJogo"&&!S.transicao){
+    S.decorrido+=dt;
+    if(S.modo==="cronometrado"){
+      S.restante-=dt;
+      if(S.restante<=0){ S.restante=0; atualizarHUD(); fim("Tempo esgotado!"); }
+    }else{
+      S.ordemRestante-=dt;
+      if(S.ordemRestante<=0){ S.ordemRestante=0; resolver(false,true); }
     }
-    if (m.input.length < 6) { m.input += d; updateEntry(); Sound.key(); flashKey(d); }
+    atualizarHUD();
   }
-  function backspace() {
-    if (!S.running) return;
-    var m = S.modules[S.active];
-    if (!m || m.solved) return;
-    if (m.type === 'selecao') { m.pending = null; updateEntry(); paintTerminals(); Sound.key(); return; }
-    m.input = m.input.slice(0, -1); updateEntry(); Sound.key(); flashKey('back');
-  }
-  function flashKey(k) {
-    var b = document.querySelector('.key[data-key="' + k + '"]');
-    if (b) { b.classList.add('press'); setTimeout(function () { b.classList.remove('press'); }, 90); }
-  }
-  function paintTerminals() {
-    var m = S.modules[S.active];
-    if (!m || m.type !== 'selecao') return;
-    m.el.querySelectorAll('.terminal').forEach(function (b, i) { b.classList.toggle('picked', i === m.pending); });
-  }
-  function pickTerminal(i) {
-    var m = S.modules[S.active];
-    if (!m || m.type !== 'selecao' || m.solved) return;
-    m.pending = i; updateEntry(); paintTerminals(); Sound.key();
-    submitSelection();
-  }
-  function submitSelection() {
-    var m = S.modules[S.active];
-    if (!m || m.type !== 'selecao' || m.solved) return;
-    if (m.pending == null) { m.el.classList.add('shake'); setTimeout(function () { m.el.classList.remove('shake'); }, 350); return; }
-    if (m.pending === m.answerIndex) solve(m); else fail(m);
-  }
-  function submit() {
-    if (!S.running) return;
-    flashKey('enter');
-    var m = S.modules[S.active];
-    if (!m || m.solved) return;
-    if (m.type === 'selecao') { submitSelection(); return; }
-    if (!m.input.length) { Sound.click(); return; }
-    var value = parseInt(m.input, 10);
-    if (!isFinite(value) || value < 0) { fail(m); return; }
-    if (value === m.answer) solve(m); else fail(m);
-  }
-  function solve(m) {
-    m.solved = true;
-    S.solved++; S.correct++;
-    S.score += 100 * LEVELS[S.level].mult + Math.max(0, Math.floor(S.time)) * 2;
-    m.el.classList.remove('active', 'shake');
-    m.el.classList.add('solved');
-    var st = m.el.querySelector('.mod-state'); if (st) st.textContent = 'ABERTO';
-    if (m.type === 'selecao') m.el.querySelectorAll('.terminal')[m.answerIndex].classList.add('correct');
-    Sound.unlock();
-    updateSegments();
-    if (S.mode === 'survival') { S.time += LEVELS[S.level].bonus; }
-    if (S.solved === S.modules.length) { win(); return; }
-    var next = nextUnsolved(m.index);
-    if (next >= 0) focusModule(next);
-  }
-  function fail(m) {
-    S.errors++;
-    S.time -= LEVELS[S.level].penalty;
-    m.input = ''; m.pending = null;
-    paintTerminals(); updateEntry(); updateLeds();
-    m.el.classList.add('shake');
-    setTimeout(function () { m.el.classList.remove('shake'); }, 360);
-    var f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
-    Sound.error();
-    if (S.errors >= 3) { lose('Tr\u00eas falhas de seguran\u00e7a registradas. Trava mestra bloqueada.'); return; }
-    if (S.time <= 0) { S.time = 0; lose('Tempo esgotado durante a tentativa.'); }
-  }
+  S.raf=requestAnimationFrame(loop);
+}
 
-  /* ---------- CICLO DE JOGO ---------- */
-  function startGame(level, mode, seed) {
-    Sound.wake();
-    S.level = level; S.mode = mode;
-    S.seed = seed && String(seed).trim() ? String(seed).trim() : randSeed();
-    S.rng = CofreGen.rngFrom('cofre|' + S.seed + '|' + level + '|' + mode);
-    S.errors = 0; S.solved = 0; S.score = 0; S.correct = 0; S.active = 0;
-    S.ended = false; S.running = true;
-    S.time = mode === 'clock' ? LEVELS[level].clock : LEVELS[level].survival;
-    buildModules();
-    renderModules();
-    updateLeds();
-    $('seedLabel').textContent = S.seed;
-    $('modeTag').textContent = mode === 'clock' ? 'CONTRA O REL\u00d3GIO' : 'SOBREVIV\u00caNCIA';
-    $('door').classList.remove('open');
-    $('setup').classList.add('hidden');
-    $('summary').classList.add('hidden');
-    focusModule(0);
-    S.last = performance.now(); S.lastTick = 0;
-    updateTimer();
-  }
-  function updateTimer() {
-    $('timer').textContent = fmt(S.time);
-    var alerta = S.time <= 15 && S.time > 0;
-    $('timer').classList.toggle('critical', alerta);
-    $('alertBadge').classList.toggle('on', alerta);
-    $('score').textContent = String(S.score).padStart(4, '0');
-  }
-  function loop(now) {
-    var dt = Math.min(0.1, (now - S.last) / 1000);
-    S.last = now;
-    if (S.running) {
-      S.time -= dt;
-      if (S.time <= 0) { S.time = 0; updateTimer(); lose('Cron\u00f4metro zerado. Cofre permanece trancado.'); }
-      else {
-        updateTimer();
-        if (S.time <= 15) {
-          var interval = S.time <= 5 ? 0.42 : 0.85;
-          if (now - S.lastTick > interval * 1000) { S.lastTick = now; Sound.tick(S.time <= 5); }
-        }
-      }
-    }
-    requestAnimationFrame(loop);
-  }
+/* ==================== EVENTOS ==================== */
+document.querySelectorAll("[data-nivel]").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("[data-nivel]").forEach(x=>x.classList.remove("selecionada"));
+  b.classList.add("selecionada"); S.nivel=b.dataset.nivel;
+}));
+document.querySelectorAll("[data-modo]").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("[data-modo]").forEach(x=>x.classList.remove("selecionada"));
+  b.classList.add("selecionada"); S.modo=b.dataset.modo;
+}));
+$("btnIniciar").addEventListener("click",()=>{
+  const v=$("inpSemente").value.trim();
+  const seed=v?((parseInt(v,10)>>>0)||novoSeed()):novoSeed();
+  $("inpSemente").value=String(seed);
+  iniciarPartida(seed);
+});
+$("btnServir").addEventListener("click",avaliar);
+$("btnLimpar").addEventListener("click",limpar);
+const LIMPAR_LABEL={escala:"🧹 Limpar Bancada",faltante:"🧹 Limpar Resposta",comparacao:"↩️ Limpar Seleção",conversao:"🧹 Limpar Resposta"};
+$("btnMudo").addEventListener("click",()=>{
+  muted=!muted; $("btnMudo").textContent=muted?"🔇 Sem som":"🔊 Som";
+  if(!muted){ audio(); somClick(); }
+});
+$("btnNovoTurno").addEventListener("click",()=>{ $("inpSemente").value=""; iniciarPartida(novoSeed()); });
+$("btnRepetir").addEventListener("click",()=>iniciarPartida(S.seed));
+$("btnMenu").addEventListener("click",()=>{ $("inpSemente").value=String(S.seed); mostrarTela("telaInicial"); });
 
-  function win() {
-    if (S.ended) return;
-    S.ended = true; S.running = false;
-    S.score += Math.floor(S.time * 10) + 500;
-    $('door').classList.add('open');
-    Sound.victory();
-    setTimeout(function () { showSummary(true, ''); }, 950);
+$("bancadaCorpo").addEventListener("click",e=>{
+  const btn=e.target.closest(".controles button");
+  if(btn && !S.transicao){
+    const i=Number(btn.dataset.i), d=Number(btn.dataset.d);
+    const c=S.challenge;
+    const min=0, max=Math.max(c.ing[i].meta||1,c.ing[i].base||1)*2;
+    S.valores[i]=Math.max(min,Math.min(max,S.valores[i]+d));
+    S.ativo=i;
+    $("val"+i).textContent=fmtInt(S.valores[i]);
+    atualizarBowl(i,S.valores[i],Math.max(c.ing[i].meta,1)*1.15);
+    const rec=$("rec"+i); if(rec){rec.classList.remove("bump");void rec.offsetWidth;rec.classList.add("bump");}
+    somLiquido(); atualizarPainel();
+    return;
   }
-  function lose(reason) {
-    if (S.ended) return;
-    S.ended = true; S.running = false;
-    $('timer').classList.remove('critical');
-    $('alertBadge').classList.remove('on');
-    Sound.defeat();
-    setTimeout(function () { showSummary(false, reason); }, 550);
+  const j=e.target.closest(".jarra");
+  if(j && !S.transicao){
+    S.selected=Number(j.dataset.op);
+    document.querySelectorAll(".jarra").forEach(x=>x.classList.toggle("selecionada",Number(x.dataset.op)===S.selected));
+    $("jarroEscolhido").textContent="Jarro "+["A","B","C","D"][S.selected];
+    somClick(); atualizarPainel();
   }
-  function showSummary(won, reason) {
-    $('sumTitle').textContent = won ? 'COFRE DESARMADO' : 'FALHA DE SEGURAN\u00c7A';
-    $('sumKicker').textContent = won ? '// PROTOCOLO CONCLU\u00cdDO //' : '// PROTOCOLO INTERROMPIDO //';
-    $('summaryDialog').classList.toggle('lose', !won);
-    $('sumReason').textContent = reason;
-    $('sumMods').textContent = S.solved + '/' + S.modules.length;
-    $('sumTime').textContent = fmt(S.time);
-    $('sumAcc').textContent = Math.round(S.correct / Math.max(1, S.correct + S.errors) * 100) + '%';
-    $('sumScore').textContent = String(S.score).padStart(4, '0');
-    $('sumSeed').textContent = S.seed;
-    $('summary').classList.remove('hidden');
-  }
+});
 
-  /* ---------- SETUP ---------- */
-  function bindOptions(groupId, attr, key) {
-    $(groupId).addEventListener('click', function (e) {
-      var el = e.target.closest('.opt'); if (!el) return;
-      $(groupId).querySelectorAll('.opt').forEach(function (o) { o.classList.remove('selected'); });
-      el.classList.add('selected');
-      S[key] = el.dataset[attr];
-      Sound.click();
-    });
+document.addEventListener("keydown",e=>{
+  if(S.tela!=="telaJogo"||S.transicao) return;
+  const inp=document.activeElement&&document.activeElement.id==="inpResp";
+  if(e.key.toLowerCase()==="m"&&!inp){ e.preventDefault(); $("btnMudo").click(); return; }
+  if(e.key==="Enter"){ e.preventDefault(); avaliar(); return; }
+  if(e.key==="Backspace"||e.key==="Delete"){
+    if(inp){ e.preventDefault(); limpar(); }
+    else if(S.challenge.type!=="escala"){ e.preventDefault(); limpar(); }
+    return;
   }
-  function init() {
-    bindOptions('levelOpts', 'level', 'level');
-    bindOptions('modeOpts', 'mode', 'mode');
-    $('rollSeed').addEventListener('click', function () { $('seedInput').value = randSeed(); Sound.click(); });
-    $('startBtn').addEventListener('click', function () { startGame(S.level, S.mode, $('seedInput').value); });
-    $('againNew').addEventListener('click', function () { startGame(S.level, S.mode, ''); });
-    $('againSame').addEventListener('click', function () { startGame(S.level, S.mode, S.seed); });
-    $('backMenu').addEventListener('click', function () { $('summary').classList.add('hidden'); $('setup').classList.remove('hidden'); });
-    $('muteBtn').addEventListener('click', function () {
-      var m = Sound.toggle();
-      $('muteBtn').textContent = m ? '\u25c7 MUDO' : '\u25c9 SOM';
-    });
-    $('keypad').addEventListener('click', function (e) {
-      var b = e.target.closest('.key'); if (!b) return;
-      var k = b.dataset.key;
-      if (k === 'enter') submit();
-      else if (k === 'back') backspace();
-      else typeDigit(k);
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key.toLowerCase() === 'm') { $('muteBtn').click(); return; }
-      if (!$('setup').classList.contains('hidden') || !$('summary').classList.contains('hidden')) return;
-      if (e.key >= '0' && e.key <= '9') { typeDigit(e.key); e.preventDefault(); return; }
-      if (e.key === 'Backspace') { backspace(); e.preventDefault(); return; }
-      if (e.key === 'Enter') { submit(); e.preventDefault(); return; }
-      if (e.key === 'Tab' || e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        var n = nextUnsolved(S.active); if (n >= 0) focusModule(n); e.preventDefault(); return;
-      }
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        for (var k = S.modules.length - 1; k >= 1; k--) {
-          var i = (S.active - k + S.modules.length * 2) % S.modules.length;
-          if (!S.modules[i].solved) { focusModule(i); break; }
-        }
-        e.preventDefault();
-      }
-    });
-    updateLeds();
-    $('timer').textContent = fmt(LEVELS[S.level].clock);
-    requestAnimationFrame(loop);
-
-    /* Hook de leitura para testes automatizados (somente leitura + relógio). */
-    window.CofreDebug = {
-      state: function () {
-        return {
-          level: S.level, mode: S.mode, seed: S.seed, running: S.running, ended: S.ended,
-          time: S.time, errors: S.errors, solved: S.solved, active: S.active, score: S.score,
-          setupVisible: !$('setup').classList.contains('hidden'),
-          summaryVisible: !$('summary').classList.contains('hidden'),
-          summaryTitle: $('sumTitle').textContent,
-          modules: S.modules.map(function (m) {
-            return { index: m.index, type: m.type, answer: m.answer, answerIndex: m.answerIndex,
-                     display: m.display, pending: m.pending != null ? m.pending : null,
-                     input: m.input, solved: m.solved };
-          })
-        };
-      },
-      setTime: function (t) { S.time = t; updateTimer(); },
-      focus: focusModule,
-      submit: submit,
-      typeDigit: typeDigit,
-      pick: function (i) { focusModule(S.active); pickTerminal(i); },
-      start: startGame
-    };
+  const c=S.challenge;
+  if(c.type==="comparacao"){
+    const n=Number(e.key);
+    if(n>=1&&n<=c.opcoes.length){ e.preventDefault(); const j=$("jarra"+(n-1)); if(j) j.click(); }
+    return;
   }
+  if(c.type==="conversao") return;
+  if(inp) return;
+  if(/^[1-9]$/.test(e.key)){
+    const i=Number(e.key)-1;
+    if(i<c.ing.length&&!c.ing[i].locked){ S.ativo=i; e.preventDefault(); somClick(); }
+    return;
+  }
+  if(e.key==="ArrowUp"||e.key==="ArrowDown"||e.key==="+"||e.key==="-"){
+    e.preventDefault();
+    const i=S.ativo, ing=c.ing[i];
+    if(!ing||ing.locked) return;
+    const passo=ing.passo||1, mult=e.shiftKey?5:1;
+    const d=(e.key==="ArrowDown"||e.key==="-")?-passo*mult:passo*mult;
+    const max=Math.max(ing.meta||1,ing.base||1)*2;
+    S.valores[i]=Math.max(0,Math.min(max,S.valores[i]+d));
+    $("val"+i).textContent=fmtInt(S.valores[i]);
+    atualizarBowl(i,S.valores[i],Math.max(ing.meta,1)*1.15);
+    const rec=$("rec"+i); if(rec){rec.classList.remove("bump");void rec.offsetWidth;rec.classList.add("bump");}
+    somLiquido(); atualizarPainel();
+  }
+});
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-})();
+S.raf=requestAnimationFrame(loop);
+
+/* ==================== HOOKS DE TESTE ==================== */
+window.__GAME__={
+  get state(){ return JSON.parse(JSON.stringify(S)); },
+  get challenge(){ return S.challenge; },
+  get seed(){ return S.seed; },
+  start(opts){
+    opts=opts||{};
+    if(opts.nivel) S.nivel=opts.nivel;
+    if(opts.modo) S.modo=opts.modo;
+    iniciarPartida(opts.seed||novoSeed());
+  },
+  setIngredient(i,v){ S.valores[i]=v; const el=$("val"+i); if(el)el.textContent=fmtInt(v); const c=S.challenge; if(c)atualizarBowl(i,v,Math.max(c.ing[i].meta,1)*1.15); atualizarPainel(); },
+  setAnswer(v){ S.resposta=String(v); const inp=$("inpResp"); if(inp)inp.value=String(v); const tx=$("txtBalanca"); if(tx&&S.challenge)tx.textContent=fmtInt(Number(v))+" "+S.challenge.conversao.to; const c=S.challenge; if(c&&c.type==="faltante")atualizarBowl(c.faltante,Number(v),c.answer*1.15); atualizarPainel(); },
+  selectOption(i){ const j=$("jarra"+i); if(j)j.click(); },
+  serve(){ avaliar(); },
+  clear(){ limpar(); },
+  forceAlert(){ S.restante=Math.min(S.restante,4); S.ordemRestante=Math.min(S.ordemRestante,4); atualizarHUD(); },
+  next(){ S.index++; proximoPedido(); },
+  setLevel(n){ S.nivel=n; },
+  setMode(m){ S.modo=m; }
+};
+window.__PROP__={generateChallenge,validateChallenge,makeRng,ratioKey,CAPS};
 </script>
 </body>
 </html>

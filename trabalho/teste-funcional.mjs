@@ -1,134 +1,144 @@
-/**
- * Teste funcional automatizado (Playwright + Chrome local, sem rede).
- * - Abre index.html offline, inicia partida, resolve todos os módulos via UI real
- *   (teclado para numéricos, clique nos terminais para seleção) e valida vitória.
- * - Inicia outra partida, força 3 erros intencionais e valida derrota.
- * - Gera as 5 capturas 1440x900 usadas pelo crítico visual.
- */
+// Teste funcional + capturas (Playwright + Chrome local, sem rede).
+import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium } from 'playwright-core';
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const CAP = path.join(ROOT, 'trabalho', 'capturas');
-fs.mkdirSync(CAP, { recursive: true });
 
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const URL = pathToFileURL(path.join(ROOT, 'index.html')).href;
+const URL = 'file:///' + path.resolve('index.html').replace(/\\/g, '/');
+const CAP = path.resolve('trabalho/capturas');
+fs.mkdirSync(CAP, { recursive: true });
 
-const log = [];
-const assert = (cond, msg) => {
-  log.push((cond ? 'PASS  ' : 'FALHA ') + msg);
-  if (!cond) throw new Error(msg);
-};
-const state = page => page.evaluate(() => window.CofreDebug.state());
-const shot = (page, name) => page.screenshot({ path: path.join(CAP, name), animations: 'disabled' });
+const logs = [];
+const problemas = [];
+function log(s) { logs.push(s); console.log(s); }
+function check(cond, msg) {
+  if (!cond) { problemas.push(msg); log('  ✗ ' + msg); }
+  else log('  ✓ ' + msg);
+}
 
-const browser = await chromium.launch({
-  executablePath: CHROME,
-  headless: true,
-  args: ['--no-sandbox', '--disable-gpu', '--force-device-scale-factor=1']
-});
+const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox', '--disable-gpu'] });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await context.setOffline(true);
+await context.route(/^https?:\/\//, r => r.abort());
 const page = await context.newPage();
-
 const consoleErrors = [];
-page.on('pageerror', e => consoleErrors.push('pageerror: ' + e.message));
-page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push('console: ' + msg.text()); });
+page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text()); });
+page.on('pageerror', e => consoleErrors.push('PAGEERROR: ' + e.message));
 
-try {
-  await page.goto(URL, { waitUntil: 'load' });
-  assert(await page.locator('[data-testid="setup"]').isVisible(), 'tela inicial visível');
-  await shot(page, '01-inicial.png');
+await page.goto(URL, { waitUntil: 'load' });
+log('Abertura offline de index.html: OK');
+check(await page.locator('#telaInicial.ativa').isVisible(), 'tela inicial visível');
+await page.screenshot({ path: path.join(CAP, '01-inicial.png') });
 
-  // Partida principal: avançado (6 módulos mistos), semente fixa.
-  await page.locator('[data-level="avancado"]').click();
-  await page.locator('[data-mode="clock"]').click();
-  await page.locator('[data-testid="seed"]').fill('VISUAL-2026');
-  await page.locator('[data-testid="start"]').click();
-  await page.waitForFunction(() => window.CofreDebug.state().running);
-  let s = await state(page);
-  assert(s.modules.length === 6, 'avançado gera 6 módulos');
-  assert(new Set(s.modules.map(m => m.type)).size === 4, 'os 4 tipos de módulo estão presentes');
-  assert(s.summaryVisible === false, 'resumo oculto durante a partida');
+async function iniciar(nivel, modo, seed) {
+  await page.evaluate(o => window.__GAME__.start(o), { nivel, modo, seed });
   await page.waitForTimeout(120);
-  await shot(page, '02-partida.png');
-
-  // Estado de alerta (últimos 15 s) — injetado apenas para a captura visual.
-  await page.evaluate(() => window.CofreDebug.setTime(11.4));
-  await page.waitForTimeout(160);
-  assert(await page.locator('[data-testid="timer"]').evaluate(el => el.classList.contains('critical')), 'cronômetro entra em estado crítico');
-  await shot(page, '03-alerta.png');
-  await page.evaluate(() => window.CofreDebug.setTime(75));
-
-  // Resolve todos os módulos pela interface real.
-  for (let guard = 0; guard < 40; guard++) {
-    s = await state(page);
-    if (s.solved === s.modules.length || !s.running) break;
-    const m = s.modules.find(x => !x.solved);
-    assert(!!m, 'existe módulo não resolvido');
-    if (m.type === 'selecao') {
-      await page.locator(`[data-testid="module-${m.index}-opt-${m.answerIndex}"]`).click();
-    } else {
-      await page.evaluate(i => window.CofreDebug.focus(i), m.index);
-      const digits = String(m.answer);
-      for (const d of digits) await page.keyboard.press(d);
-      await page.keyboard.press('Enter');
-    }
-    const after = await state(page);
-    assert(after.modules[m.index].solved, `módulo ${m.index} (${m.type}) resolvido pela UI`);
-  }
-  s = await state(page);
-  assert(s.solved === 6, 'todos os 6 módulos desarmados');
-  await page.waitForSelector('[data-testid="summary"]:not(.hidden)', { timeout: 5000 });
-  await page.waitForTimeout(1100); // deixa a animação da porta terminar
-  s = await state(page);
-  assert(s.summaryTitle.includes('COFRE DESARMADO'), 'tela de vitória exibida');
-  assert(s.summaryVisible, 'resumo visível após vitória');
-  await shot(page, '04-vitoria.png');
-
-  // Nova partida: força 3 erros para chegar à derrota.
-  await page.locator('[data-testid="again-new"]').click();
-  await page.waitForFunction(() => window.CofreDebug.state().running);
-  s = await state(page);
-  const alvo = s.modules.find(m => m.type !== 'selecao');
-  assert(!!alvo, 'há módulo numérico para forçar erro');
-  for (let n = 1; n <= 3; n++) {
-    await page.evaluate(i => window.CofreDebug.focus(i), alvo.index);
-    const errado = String(alvo.answer + 1);
-    for (const d of errado) await page.keyboard.press(d);
-    await page.keyboard.press('Enter');
-    const a = await state(page);
-    assert(a.errors === n, `erro ${n} registrado`);
-  }
-  await page.waitForSelector('[data-testid="summary"]:not(.hidden)', { timeout: 5000 });
-  await page.waitForTimeout(700);
-  s = await state(page);
-  assert(s.summaryTitle.includes('FALHA'), 'tela de derrota exibida');
-  await shot(page, '05-derrota.png');
-
-  // Repetir mesma semente gera exatamente os mesmos módulos.
-  const seedAnterior = s.seed;
-  await page.locator('[data-testid="again-same"]').click();
-  await page.waitForFunction(() => window.CofreDebug.state().running);
-  s = await state(page);
-  assert(s.seed === seedAnterior, 'repetir mesma semente preserva a seed');
-
-  assert(consoleErrors.length === 0, 'nenhum erro de console/página: ' + consoleErrors.join(' | '));
-
-  fs.writeFileSync(path.join(ROOT, 'trabalho', 'teste-funcional.log'), log.join('\n') + '\n', 'utf8');
-  console.log(log.join('\n'));
-  console.log('\nRESULTADO: APROVADO');
-  console.log('Capturas:', CAP);
-  await browser.close();
-  process.exit(0);
-} catch (e) {
-  console.log(log.join('\n'));
-  console.error('\nRESULTADO: REPROVADO — ' + e.message);
-  console.error(consoleErrors.join('\n'));
-  fs.writeFileSync(path.join(ROOT, 'trabalho', 'teste-funcional.log'), log.join('\n') + '\nERRO: ' + e.message + '\n', 'utf8');
-  await browser.close();
-  process.exit(1);
+  check(await page.locator('#telaJogo.ativa').isVisible(), `turno iniciado (${nivel}/${modo})`);
 }
+async function desafio() {
+  return await page.evaluate(() => JSON.parse(JSON.stringify(window.__GAME__.challenge)));
+}
+async function resolverCerto() {
+  const c = await desafio();
+  if (c.type === 'escala') {
+    for (let i = 0; i < c.ing.length; i++) {
+      await page.evaluate(([i, v]) => window.__GAME__.setIngredient(i, v), [i, c.ing[i].meta]);
+    }
+  } else if (c.type === 'comparacao') {
+    await page.evaluate(i => window.__GAME__.selectOption(i), c.correta);
+  } else {
+    await page.evaluate(v => window.__GAME__.setAnswer(v), c.answer);
+  }
+  await page.click('#btnServir');
+  await page.waitForTimeout(1050);
+  return c;
+}
+async function resolverErrado() {
+  const c = await desafio();
+  if (c.type === 'escala') {
+    await page.evaluate(([i, v]) => window.__GAME__.setIngredient(i, v), [0, c.ing[0].meta + 1]);
+  } else if (c.type === 'comparacao') {
+    await page.evaluate(i => window.__GAME__.selectOption(i), (c.correta + 1) % c.opcoes.length);
+  } else {
+    await page.evaluate(v => window.__GAME__.setAnswer(v), c.answer + 1);
+  }
+  await page.click('#btnServir');
+  await page.waitForTimeout(1050);
+  return c;
+}
+
+// ---------- execução 1: vitória no turno cronometrado ----------
+log('\n--- Execução 1: turno cronometrado, todos os tipos ---');
+await iniciar('aprendiz', 'cronometrado', 424242);
+const vistos = new Set();
+let anteriorEntregues = 0;
+for (let n = 0; n < 8; n++) {
+  const c = await desafio();
+  vistos.add(c.type);
+  if (n === 0) {
+    // bancada com níveis visíveis para a captura
+    await page.evaluate(() => {
+      const c = window.__GAME__.challenge;
+      window.__GAME__.setIngredient(0, Math.max(1, Math.floor(c.ing[0].meta / 2)));
+    });
+    await page.waitForTimeout(180);
+    await page.screenshot({ path: path.join(CAP, '02-jogo-andamento.png') });
+  }
+  if (c.type === 'comparacao' && !vistos.has('_cap_comp')) {
+    vistos.add('_cap_comp');
+    await page.waitForTimeout(100);
+    await page.screenshot({ path: path.join(CAP, '05-comparacao.png') });
+  }
+  if (c.type === 'conversao' && !vistos.has('_cap_conv')) {
+    vistos.add('_cap_conv');
+    await page.waitForTimeout(100);
+    await page.screenshot({ path: path.join(CAP, '06-conversao.png') });
+  }
+  await resolverCerto();
+  const st = await page.evaluate(() => window.__GAME__.state);
+  check(st.entregues === anteriorEntregues + 1, `pedido ${n + 1} (${c.type}) aumentou entregues para ${st.entregues}`);
+  check(st.score > 0, `pontuação positiva após pedido ${n + 1}: ${st.score}`);
+  anteriorEntregues = st.entregues;
+}
+check(['escala', 'faltante', 'comparacao', 'conversao'].every(t => vistos.has(t)), 'os 4 tipos de desafio apareceram');
+check(await page.locator('#telaFim.ativa').isVisible(), 'tela de fechamento exibida após a meta');
+await page.screenshot({ path: path.join(CAP, '04-fechamento.png') });
+
+// estado de alerta (em nova partida)
+await iniciar('sous', 'cronometrado', 777001);
+await page.evaluate(() => window.__GAME__.forceAlert());
+await page.waitForTimeout(160);
+check(await page.locator('#seloAlerta.visivel').isVisible(), 'selo de alerta visível no tempo crítico');
+check(await page.locator('#hudTempo.critical').count() > 0, 'cronômetro em estado crítico');
+await page.screenshot({ path: path.join(CAP, '03-alerta.png') });
+
+// ---------- execução 2: falhas consecutivas em serviço contínuo ----------
+log('\n--- Execução 2: serviço contínuo, erros consecutivos ---');
+await iniciar('chef', 'continuo', 909090);
+for (let n = 0; n < 3; n++) {
+  const c = await resolverErrado();
+  const st = await page.evaluate(() => window.__GAME__.state);
+  check(st.vidas === 2 - n, `erro ${n + 1} (${c.type}) reduziu vidas para ${st.vidas}`);
+  check(st.combo === 0, 'combo zerado após erro');
+}
+check(await page.locator('#telaFim.ativa').isVisible(), 'tela de fechamento exibida após perder as vidas');
+check((await page.locator('#fimTitulo').textContent()).length > 0, 'título da tela final preenchido');
+
+// repetir mesma semente
+await page.click('#btnRepetir');
+await page.waitForTimeout(120);
+check(await page.evaluate(() => String(window.__GAME__.seed)) === '909090', 'repetir mesma semente preservou 909090');
+
+check(consoleErrors.length === 0, 'nenhum erro de console: ' + consoleErrors.join(' | '));
+
+const resultado = {
+  data: new Date().toISOString(),
+  screenshots: fs.readdirSync(CAP),
+  problemas, consoleErrors,
+  resultado: problemas.length === 0 ? 'APROVADO' : 'REPROVADO'
+};
+fs.writeFileSync(path.resolve('trabalho/teste-funcional.json'), JSON.stringify(resultado, null, 2));
+fs.writeFileSync(path.resolve('trabalho/teste-funcional.log'), logs.join('\n') + '\n\nRESULTADO: ' + resultado.resultado + '\n');
+log('\nRESULTADO: ' + resultado.resultado);
+await browser.close();
+if (problemas.length) process.exit(1);

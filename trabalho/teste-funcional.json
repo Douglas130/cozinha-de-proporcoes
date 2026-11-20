@@ -1,0 +1,14 @@
+{
+  "data": "2026-11-20T19:29:21.230Z",
+  "screenshots": [
+    "01-inicial.png",
+    "02-jogo-andamento.png",
+    "03-alerta.png",
+    "04-fechamento.png",
+    "05-comparacao.png",
+    "06-conversao.png"
+  ],
+  "problemas": [],
+  "consoleErrors": [],
+  "resultado": "APROVADO"
+}

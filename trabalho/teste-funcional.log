@@ -1,27 +1,41 @@
-PASS  tela inicial visível
-PASS  avançado gera 6 módulos
-PASS  os 4 tipos de módulo estão presentes
-PASS  resumo oculto durante a partida
-PASS  cronômetro entra em estado crítico
-PASS  existe módulo não resolvido
-PASS  módulo 0 (selecao) resolvido pela UI
-PASS  existe módulo não resolvido
-PASS  módulo 1 (operacao) resolvido pela UI
-PASS  existe módulo não resolvido
-PASS  módulo 2 (termo) resolvido pela UI
-PASS  existe módulo não resolvido
-PASS  módulo 3 (sequencia) resolvido pela UI
-PASS  existe módulo não resolvido
-PASS  módulo 4 (termo) resolvido pela UI
-PASS  existe módulo não resolvido
-PASS  módulo 5 (sequencia) resolvido pela UI
-PASS  todos os 6 módulos desarmados
-PASS  tela de vitória exibida
-PASS  resumo visível após vitória
-PASS  há módulo numérico para forçar erro
-PASS  erro 1 registrado
-PASS  erro 2 registrado
-PASS  erro 3 registrado
-PASS  tela de derrota exibida
-PASS  repetir mesma semente preserva a seed
-PASS  nenhum erro de console/página: 
+Abertura offline de index.html: OK
+  ✓ tela inicial visível
+
+--- Execução 1: turno cronometrado, todos os tipos ---
+  ✓ turno iniciado (aprendiz/cronometrado)
+  ✓ pedido 1 (escala) aumentou entregues para 1
+  ✓ pontuação positiva após pedido 1: 125
+  ✓ pedido 2 (faltante) aumentou entregues para 2
+  ✓ pontuação positiva após pedido 2: 275
+  ✓ pedido 3 (comparacao) aumentou entregues para 3
+  ✓ pontuação positiva após pedido 3: 450
+  ✓ pedido 4 (conversao) aumentou entregues para 4
+  ✓ pontuação positiva após pedido 4: 650
+  ✓ pedido 5 (escala) aumentou entregues para 5
+  ✓ pontuação positiva após pedido 5: 875
+  ✓ pedido 6 (faltante) aumentou entregues para 6
+  ✓ pontuação positiva após pedido 6: 1125
+  ✓ pedido 7 (comparacao) aumentou entregues para 7
+  ✓ pontuação positiva após pedido 7: 1400
+  ✓ pedido 8 (conversao) aumentou entregues para 8
+  ✓ pontuação positiva após pedido 8: 1700
+  ✓ os 4 tipos de desafio apareceram
+  ✓ tela de fechamento exibida após a meta
+  ✓ turno iniciado (sous/cronometrado)
+  ✓ selo de alerta visível no tempo crítico
+  ✓ cronômetro em estado crítico
+
+--- Execução 2: serviço contínuo, erros consecutivos ---
+  ✓ turno iniciado (chef/continuo)
+  ✓ erro 1 (escala) reduziu vidas para 2
+  ✓ combo zerado após erro
+  ✓ erro 2 (faltante) reduziu vidas para 1
+  ✓ combo zerado após erro
+  ✓ erro 3 (comparacao) reduziu vidas para 0
+  ✓ combo zerado após erro
+  ✓ tela de fechamento exibida após perder as vidas
+  ✓ título da tela final preenchido
+  ✓ repetir mesma semente preservou 909090
+  ✓ nenhum erro de console: 
+
+RESULTADO: APROVADO
